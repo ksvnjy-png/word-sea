@@ -1,7 +1,7 @@
 {
-  "name": "서희의 단어 바다",
-  "short_name": "단어 바다",
-  "description": "인디고 차일드 단어 외우기",
+  "name": "서희의 영어 바다",
+  "short_name": "영어 바다",
+  "description": "인디고 차일드 단어 외우기 · 영어 뉴스 읽기",
   "lang": "ko",
   "start_url": "./",
   "scope": "./",

@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>서희의 단어 바다</title>
+<title>서희의 영어 바다</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D6F1F5">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="단어 바다">
+<meta name="apple-mobile-web-app-title" content="영어 바다">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <script>
@@ -36,6 +36,11 @@ body{font-family:'Jua',system-ui,-apple-system,sans-serif;color:var(--ink);
   background:linear-gradient(180deg,#d6f1f5 0%,#eef9fb 40%,#fbfeff 100%);min-height:100vh;
   -webkit-tap-highlight-color:transparent}
 .en{font-family:'Nunito',system-ui,sans-serif;font-weight:800;letter-spacing:.2px}
+/* 한글이 낱말 중간에서 끊기지 않게(아이/콘 X), 마지막 줄에 '요.'만 남지 않게 줄 길이를 고르게 */
+body{word-break:keep-all;overflow-wrap:break-word}
+.muted,.note,.err,.hint,.label,.listhint,.clear-sub,.clear-left,.field,h1,h2,h3{text-wrap:balance}
+.stackbtns{display:grid;gap:10px;margin-top:12px}
+.stackbtns .btn{width:100%}
 .wrap{max-width:780px;margin:0 auto;padding:14px 14px 56px}
 button{font-family:inherit;color:inherit}
 .btn{appearance:none;border:0;border-radius:18px;padding:14px 20px;font-size:20px;cursor:pointer;
@@ -179,7 +184,7 @@ button.li:active{transform:scale(.98)}
 .cat.bee{background:#fff4c2;color:#8a6400}
 .cat.etc{background:#eef0f3;color:#556270}
 /* 단어 / 뉴스 큰 탭 */
-.kinds{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
+.kinds{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0 14px}
 .kind{appearance:none;border:0;border-radius:18px;padding:14px 10px;font-size:22px;cursor:pointer;background:#fff;color:var(--sub);box-shadow:inset 0 0 0 2px var(--line),0 3px 0 var(--line);white-space:nowrap}
 .kind.on{background:var(--teal);color:#fff;box-shadow:0 4px 0 var(--teal-d)}
 /* 뉴스 기사 */
@@ -1223,7 +1228,7 @@ function viewHome(){
     </div>`).join('') + '</div>';
   }
   return `<div class="home-grid"><div class="home-left">
-    <div class="hero">${heroScene()}<div><span class="nick">동글빵 서희</span></div><h1>서희의 단어 바다</h1><p>인디고 차일드 단어 외우기 · 영어 뉴스 읽기</p></div>
+    <div class="hero">${heroScene()}<div><span class="nick">동글빵 서희</span></div><h1>서희의 영어 바다</h1><p>인디고 차일드 단어 외우기 · 영어 뉴스 읽기</p></div>
     <button class="btn big coral full" data-act="new">${NEWS ? '📰 새 뉴스 기사 올리기' : '📷 새 단어 사진 올리기'}</button>
     <button class="btn ghost full" data-act="clip-import" style="margin-top:10px">📥 복사한 ${NEWS ? '기사' : '단어'} 가져오기</button>
     </div><div class="home-right">
@@ -1256,14 +1261,14 @@ function viewUpload(){
     return head + `<div class="card center">
       <div style="font-size:48px">🖼</div>
       <div style="font-size:22px;margin:6px 0 4px">사진은 사진 인식 앱에서 올려요</div>
-      <div class="muted" style="line-height:1.55">사진 인식 앱에서 단어를 뽑은 뒤<br><b>🚀 공부 앱에 바로 넣기</b>를 누르면 여기로 자동으로 들어와요.</div>
-      <div class="row"><a class="btn big coral" href="${PHOTO_APP_URL}" target="_blank" rel="noopener" style="text-decoration:none">📷 사진 인식 앱 열기</a></div>
-      <div class="muted" style="margin-top:10px;font-size:14px">휴대폰은 Claude 앱 말고 <b>삼성 인터넷·크롬</b>에서 claude.ai에 로그인한 상태로 열어 주세요.</div>
+      <div class="muted" style="line-height:1.6">사진 인식 앱에서 단어를 뽑은 뒤<br><b>📤 공부 앱으로 보내기</b>를 누르면<br>여기로 자동으로 들어와요.</div>
+      <div class="stackbtns"><a class="btn big coral" href="${PHOTO_APP_URL}" target="_blank" rel="noopener" style="text-decoration:none">📷 사진 인식 앱 열기</a></div>
+      <div class="muted" style="margin-top:10px;font-size:14px;line-height:1.5">휴대폰은 Claude 앱 말고<br><b>삼성 인터넷·크롬</b>에서 열어 주세요.<br>(claude.ai에 로그인한 상태로)</div>
     </div>
     <div class="card mt center">
-      <div class="muted" style="margin-bottom:4px">사진 인식 앱에서 <b>📋 글로 복사</b>를 했다면</div>
-      <div class="row" style="margin-top:8px"><button class="btn" data-act="paste">📋 단어 목록 붙여넣기</button><button class="btn ghost" data-act="manual">✏️ 직접 입력하기</button></div>
-      <div class="muted" style="margin-top:12px;font-size:13px">API 키가 있으면 ⚙️ 설정에 넣으면 이 앱에서 바로 사진을 올릴 수 있어요.</div>
+      <div class="muted">사진 인식 앱에서 <b>📋 글로 복사</b>를 했다면</div>
+      <div class="stackbtns"><button class="btn" data-act="paste">📋 단어 목록 붙여넣기</button><button class="btn ghost" data-act="manual">✏️ 직접 입력하기</button></div>
+      <div class="muted" style="margin-top:12px;font-size:13px;line-height:1.5">API 키가 있으면 ⚙️ 설정에 넣어 두세요.<br>이 앱에서 바로 사진을 올릴 수 있어요.</div>
     </div>`;
   }
   if (!up.words){
@@ -1281,11 +1286,11 @@ function viewUpload(){
         <button class="btn big" data-act="extract" ${up.files.length ? '' : 'disabled'}>✨ 단어 뽑기</button>
       </div>` : `<div class="note" style="text-align:left;line-height:1.55">
         <b>이 앱은 API 키 없이 사진에서 단어를 직접 뽑을 수 없어요.</b><br>
-        무료로 하려면 <b>사진 인식 앱</b>에서 사진을 올려 단어를 뽑은 뒤 <b>🚀 공부 앱에 바로 넣기</b>나 <b>📋 글로 복사</b>로 가져오세요.
+        무료로 하려면 <b>사진 인식 앱</b>에서 사진을 올려 단어를 뽑은 뒤 <b>📤 공부 앱으로 보내기</b>나 <b>📋 글로 복사</b>로 가져오세요.
         <div style="margin-top:10px"><a class="btn" href="${PHOTO_APP_URL}" target="_blank" rel="noopener" style="text-decoration:none">🖼 사진 인식 앱 열기</a></div>
         <div class="muted" style="margin-top:8px;font-size:14px">휴대폰에서는 Claude 앱 말고 <b>삼성 인터넷·크롬</b>에서 claude.ai에 로그인한 상태로 열어야 사진 선택 창이 떠요. API 키가 있으면 ⚙️ 설정에 넣어도 돼요.</div>
       </div>`}
-      <div class="row"><button class="btn small ghost" data-act="paste">📋 단어 목록 붙여넣기</button><button class="btn small ghost" data-act="manual">✏️ 직접 입력하기</button></div>
+      <div class="stackbtns"><button class="btn ghost" data-act="paste">📋 단어 목록 붙여넣기</button><button class="btn ghost" data-act="manual">✏️ 직접 입력하기</button></div>
     </div>`;
   }
   const n = up.words.length;
@@ -1602,13 +1607,13 @@ function startNews(u, fresh){
   stopAll();
   const N = parseNews(u);
   S.unit = {id:u.id, name:u.name, cat:'', news:true, N, words:[]};
-  S.done = {}; S.gb = null; S.nt = null; S.miss = {t1:{}, t2:{}, t3:{}};
+  S.done = {}; S.gb = null; S.nt = null; S.ntBack = null; S.miss = {t1:{}, t2:{}, t3:{}};
   S.nl = {pos:0, to:null, playing:false, finished:false};
   const pr = fresh ? null : LS.get('sw_nprog_' + u.id, null);
   if (pr && pr.nw === N.words.length){
     S.done = pr.done || {};
     if (pr.nl && pr.nl.pos < N.words.length) S.nl.pos = pr.nl.pos || 0;
-    if (pr.nt && pr.nt.phase !== 'end' && Array.isArray(pr.nt.res) && pr.nt.res.length === N.words.length){ S.nt = pr.nt; S.nt.phase = S.nt.phase === 'checked' ? 'checked' : 'read'; }
+    if (pr.nt && pr.nt.phase !== 'end' && Array.isArray(pr.nt.res) && pr.nt.res.length === N.words.length){ S.nt = pr.nt; S.nt.phase = S.nt.phase === 'checked' ? 'checked' : 'read'; S.ntBack = pr.back || null; }
   }
   goNews(S.nt ? 'ntest' : 'nlisten');
   if (S.nt) toast('하던 곳부터 이어서 해요 👍', 'good', 1600);
@@ -1616,7 +1621,7 @@ function startNews(u, fresh){
 function saveNews(){
   if (!S.unit || !S.unit.news) return;
   const key = 'sw_nprog_' + S.unit.id, old = LS.get(key, null) || {};
-  LS.set(key, {nw:S.unit.N.words.length, done:S.done, nl:{pos:S.nl.pos}, nt:S.nt, best:old.best, last:old.last});
+  LS.set(key, {nw:S.unit.N.words.length, done:S.done, nl:{pos:S.nl.pos}, nt:S.nt, back:S.ntBack || null, best:old.best, last:old.last});
 }
 function goNews(screen){
   stopAll(); S.gb = null;
@@ -1712,8 +1717,11 @@ function nwMatch(pw, h){
   const sa = sound(a), sb = sound(b);
   if (sa.length >= 2 && sa === sb) return true;
   if (a.length >= 5 && lev(sa, sb) <= 1) return true;
-  return false;
+  // 테스트 1(단어 읽기)과 같은 정답 규칙: 편집거리 + 자음 골격 + 비슷한 소리(heart→hurt, asked→ask)
+  return matchEn(pw, [h]);
 }
+// 짧은 단어(a, the, to, ask…)는 음성 인식이 자주 빼먹으므로, 앞이나 뒤 단어를 맞게 읽었으면 정답
+const SHORT = w => normEn(w).length <= 3;
 // 기사 단어(P)와 들린 말(H)을 순서대로 맞춰 보기 → 맞게 읽은 단어 표시
 function alignRead(P, H){
   const n = P.length, m = H.length, INF = 1e9;
@@ -1752,6 +1760,13 @@ function gradePara(p, txt){
   const T = S.nt, N = S.unit.N, ids = N.paras[p].w;
   const H = (String(txt).match(/[A-Za-z0-9]+(?:['’][A-Za-z]+)*/g) || []);
   const ok = alignRead(ids.map(gi => ({w: N.words[gi].t, free: N.words[gi].free})), H);
+  const scored = ids.map((gi, k) => k).filter(k => !N.words[ids[k]].free);
+  const base = ok.slice();
+  scored.forEach((k, j) => {
+    if (ok[k] || !SHORT(N.words[ids[k]].t)) return;
+    const prev = scored[j - 1], next = scored[j + 1];
+    if ((prev != null && base[prev]) || (next != null && base[next])) ok[k] = true;
+  });
   ids.forEach((gi, k) => { T.res[gi] = N.words[gi].free ? 'free' : ok[k] ? 'ok' : 'bad'; });
 }
 function paraScore(p){
@@ -1798,7 +1813,13 @@ async function ntMic(){
   render(); scrollNow();
   if (r.bad) setTimeout(() => { if (S.nt === T && T.phase === 'checked' && S.screen === 'ntest') speakList(badPhrases([p])); }, 900);
 }
+// 합격한 결과를 보관 → 다시 읽기를 하다가도 "합격 결과로 돌아가기"로 바로 나갈 수 있게
+function keepPassed(){
+  const T = S.nt;
+  if (T && T.phase === 'end' && T.score >= PASS) S.ntBack = JSON.parse(JSON.stringify(T));
+}
 function finishNT(){
+  S.ntBack = null;
   const T = S.nt; T.phase = 'end'; T.score = totalScore();
   const key = 'sw_nprog_' + S.unit.id, pr = LS.get(key, null) || {};
   pr.best = Math.max(pr.best == null ? 0 : pr.best, T.score); pr.last = T.score; LS.set(key, pr);
@@ -1913,8 +1934,9 @@ function viewNTest(){
       <div class="row"><button class="btn big coral" data-act="nt-next">${T.qi + 1 < T.queue.length ? '다음 문단 →' : '결과 보기 →'}</button></div>
       ${r.bad ? `<div class="row" style="margin-top:10px"><button class="btn small okghost" data-act="nt-override" style="flex:none">🙋 제대로 읽었어요</button></div>` : ''}</div>`;
   }
+  if (S.ntBack && !li) ctl = ctl.replace(/<\/div>$/, `<div class="row" style="margin-top:8px"><button class="btn small ghost" data-act="nt-back" style="flex:none">↩ 합격 결과로 돌아가기</button></div></div>`);
   const art = articleHTML({cls, pcls: q => q === p ? 'now' : 'dim'});
-  return nshell(title + prog + `<div class="split"><div class="split-a ntctl tt">${ctl}${legend}</div><div class="split-b nart"><div class="leg-top">${legend}</div>${art}</div></div>`) + glossBubble();
+  return nshell(title + prog +`<div class="split"><div class="split-a ntctl tt">${ctl}${legend}</div><div class="split-b nart"><div class="leg-top">${legend}</div>${art}</div></div>`) + glossBubble();
 }
 function viewNUpload(){
   return `<div class="top"><button class="icon-btn" data-act="home">🏠</button><div class="top-title">새 뉴스 기사 올리기</div></div>
@@ -1957,7 +1979,7 @@ function viewShare(){
   </div>
   <div class="card mt center">
     <div style="font-size:21px;margin-bottom:6px">🔄 단원 옮기기</div>
-    <div class="muted">이 기기의 단원 ${S.units.length}개를 다른 기기로 보내요. (공부 진행 기록은 빼고 단어만)</div>
+    <div class="muted">이 기기의 단원·기사 ${S.units.length}개를 다른 기기로 보내요.<br>(공부 기록은 빼고 내용만)</div>
     <div class="row"><button class="btn coral" data-act="make-all">📤 내 단원 전부 보내기</button></div>
     ${sh ? `${allQr ? `<img src="${allQr}" alt="단원 QR" class="qrimg big">
       <div class="muted">받을 기기 카메라로 찍으면 단원이 들어가요. 안 찍히면 링크로 보내 주세요.</div>` : `<div class="note">단원이 많아서 QR이 너무 촘촘해져요. <b>링크 복사</b>나 <b>보내기</b>로 옮겨 주세요.</div>`}
@@ -2046,13 +2068,14 @@ app.addEventListener('click', async e => {
     case 'nt-saybad': { const T = S.nt; speakList(badPhrases([T.queue[T.qi]])); break; }
     case 'nt-sayall': speakList(badPhrases(range(S.unit.N.paras.length))); break;
     case 'nt-next': { const T = S.nt; stopSpeech(); T.qi++; if (T.qi >= T.queue.length) finishNT(); else { T.phase = 'read'; render(); scrollNow(); } break; }
+    case 'nt-back': if (S.ntBack){ stopAll(); S.nt = S.ntBack; S.ntBack = null; render(); window.scrollTo(0, 0); } break;
     case 'nt-retrybad': {
-      const T = S.nt, N = S.unit.N; stopSpeech();
+      const T = S.nt, N = S.unit.N; stopSpeech(); keepPassed();
       T.queue = range(N.paras.length).filter(p => paraScore(p).bad);
       T.queue.forEach(p => { N.paras[p].w.forEach(gi => { if (T.res[gi] === 'bad') T.res[gi] = null; }); delete T.heard[p]; });
       T.qi = 0; T.phase = 'read'; T.score = null; render(); window.scrollTo(0, 0); setTimeout(scrollNow, 50); break;
     }
-    case 'nt-reset': stopAll(); S.nt = null; initNT(); render(); window.scrollTo(0, 0); break;
+    case 'nt-reset': stopAll(); keepPassed(); S.nt = null; initNT(); render(); window.scrollTo(0, 0); break;
     case 'open': { const u = S.units.find(x => x.id === id); if (u) startUnit(u); break; }
     case 'edit': { const u = S.units.find(x => x.id === id); if (u) newUpload(u); break; }
     case 'del': S.confirmDel = id; render(); break;
@@ -2117,7 +2140,7 @@ app.addEventListener('click', async e => {
     }
     case 'share-app-url': case 'share-all': {
       const t = act === 'share-all' ? S.shareAll : appUrl();
-      try { await navigator.share({title:'서희의 단어 바다', text: act === 'share-all' ? '단어 바다 단원 보내요' : '서희의 단어 바다 앱', url:t}); } catch(e2){}
+      try { await navigator.share({title:'서희의 영어 바다', text: act === 'share-all' ? '영어 바다 단원 보내요' : '서희의 영어 바다 앱', url:t}); } catch(e2){}
       break;
     }
     case 'clip-import': importFromClipboard(); break;
