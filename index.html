@@ -176,6 +176,54 @@ button.li:active{transform:scale(.98)}
 .cat{display:inline-block;border-radius:999px;padding:3px 10px;font-size:13px;font-family:'Nunito',sans-serif;font-weight:800;vertical-align:middle}
 .cat.br{background:#e3f1ff;color:#1d5fa8}
 .cat.wi{background:#ffeee6;color:#c4512d}
+.cat.bee{background:#fff4c2;color:#8a6400}
+.cat.etc{background:#eef0f3;color:#556270}
+/* 단어 / 뉴스 큰 탭 */
+.kinds{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
+.kind{appearance:none;border:0;border-radius:18px;padding:14px 10px;font-size:22px;cursor:pointer;background:#fff;color:var(--sub);box-shadow:inset 0 0 0 2px var(--line),0 3px 0 var(--line);white-space:nowrap}
+.kind.on{background:var(--teal);color:#fff;box-shadow:0 4px 0 var(--teal-d)}
+/* 뉴스 기사 */
+.art{background:#fff;border-radius:22px;padding:18px 18px 8px;box-shadow:0 8px 24px rgba(14,124,134,.10);font-family:'Nunito',system-ui,sans-serif;font-weight:700;font-size:21px;line-height:1.75;color:var(--ink)}
+.art h3{font-family:'Nunito',sans-serif;font-weight:900;font-size:24px;line-height:1.3;margin:0 0 12px;color:var(--teal-d)}
+.art p{margin:0 0 14px;border-radius:12px;transition:background .2s,opacity .2s}
+.nw{cursor:pointer;border-radius:6px;padding:1px 1px;transition:background .15s}
+.nw.g{text-decoration:underline dashed #ff7a59 2px;text-underline-offset:5px;color:#c4512d}
+.nw.cur{background:#fff1b8}
+.nw.ok{background:var(--ok-bg);color:var(--ok-d)}
+.nw.bad{background:#ffd9d9;color:var(--bad-d)}
+.nw.free{color:#8a979b;background:#f1f4f5}
+.art p.dim{opacity:.38}
+.art p.now{background:#f6fbff;box-shadow:0 0 0 3px #cfe9ee}
+.gbub{position:fixed;z-index:30;background:#12343b;color:#fff;border-radius:16px;padding:10px 14px 10px;font-size:19px;box-shadow:0 10px 26px rgba(0,0,0,.25);max-width:min(320px,88vw);text-align:center}
+.gbub .gt{font-family:'Nunito',sans-serif;font-weight:900;font-size:20px;color:#ffd97a}
+.gbub .gm{margin:2px 0 8px}
+.gbub .btn{font-size:15px;padding:7px 12px;border-radius:12px}
+.gbub:after{content:'';position:absolute;left:var(--ax,50%);bottom:-8px;margin-left:-8px;border:8px solid transparent;border-bottom:0;border-top-color:#12343b}
+.gbub.below:after{bottom:auto;top:-8px;border-top:0;border-bottom:8px solid #12343b}
+.glist{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.gcard{border:0;background:#fff;border-radius:16px;padding:12px 14px;text-align:left;cursor:pointer;box-shadow:0 4px 0 var(--line);font-family:inherit;color:inherit}
+.gcard .gt{font-family:'Nunito',sans-serif;font-weight:900;font-size:21px;color:#c4512d}
+.gcard .gm{font-size:17px;color:var(--sub);margin-top:2px}
+.ntctl{position:sticky;top:6px;z-index:5}
+.ntctl .legend{background:rgba(255,255,255,.92);border-radius:14px;padding:6px;margin:8px 0 0}
+.nart{margin-top:14px}
+.leg-top{display:none}
+/* 세로 화면·좁은 화면: 조작 버튼을 아래쪽에 붙여서 기사를 가리지 않게 */
+@media (max-width:899px), (orientation:portrait){
+  .ntctl{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:20;padding:0 10px calc(10px + env(safe-area-inset-bottom))}
+  .ntctl .card{max-width:760px;margin:0 auto;padding:10px 12px !important;box-shadow:0 -6px 26px rgba(14,124,134,.22)}
+  .ntctl .row{margin-top:8px}
+  .ntctl .btn.big{font-size:20px;padding:12px 16px}
+  .ntctl .score{font-size:24px !important;margin:2px 0 0}
+  .ntctl .legend,.ntctl .next,.ntctl.tt .muted{display:none}
+  .ntctl .muted{font-size:13px !important;margin-top:6px !important}
+  .leg-top{display:flex}
+  .nart{padding-bottom:var(--ctlh,240px)}
+  .art p{scroll-margin-top:10px}
+}
+.score{font-size:44px;color:var(--teal-d);margin:4px 0}
+.legend{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:14px;margin:8px 0 12px}
+.legend span{border-radius:999px;padding:3px 10px}
 .filters{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
 .filters .chip.on{background:var(--teal);color:#fff;box-shadow:none}
 .catpick{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
@@ -299,17 +347,26 @@ button.li:active{transform:scale(.98)}
 (function(){
 'use strict';
 /* ---------- 분류 ---------- */
-const CATS = ['Benchmark Reading', 'Write It'];
+const CATS = ['Benchmark Reading', 'Write It', 'BEE', '기타'];
+const CAT_LABEL = {'Benchmark Reading':'📖 Benchmark Reading', 'Write It':'✏️ Write It', 'BEE':'🐝 BEE', '기타':'📁 기타'};
+const CAT_CLS = {'Benchmark Reading':'br', 'Write It':'wi', 'BEE':'bee', '기타':'etc'};
 function catNorm(s){
-  s = String(s || '');
+  s = String(s || '').trim();
+  if (!s) return '';
   if (/bench/i.test(s)) return 'Benchmark Reading';
   if (/write/i.test(s)) return 'Write It';
-  return '';
+  if (/^bee$|spelling\s*bee|\bbee\b/i.test(s)) return 'BEE';
+  return '기타';
 }
 function catBadge(c){
   if (!c) return '';
-  return `<span class="cat ${c === 'Write It' ? 'wi' : 'br'}">${c === 'Write It' ? '✏️ Write It' : '📖 Benchmark Reading'}</span>`;
+  return `<span class="cat ${CAT_CLS[c] || 'etc'}">${CAT_LABEL[c] || esc(c)}</span>`;
 }
+// 분류 필터: '기타'에는 분류가 없는 단원도 함께 보여 준다
+const inCat = (u, f) => !f || (f === '기타' ? (catNorm(u.cat) === '기타' || !catNorm(u.cat)) : catNorm(u.cat) === f);
+const isNews = u => !!u && u.type === 'news';
+// BEE 단원은 테스트 1까지만
+const testsOf = u => (u && catNorm(u.cat) === 'BEE') ? ['t1'] : ['t1', 't2', 't3'];
 
 /* ---------- 동글빵 캐릭터 ---------- */
 function dongglebbang(size, mood){
@@ -472,6 +529,8 @@ const PHOTO_APP_URL = 'https://claude.ai/artifact/EXSiELLdH68R7a1x454n5a';
 const EXTRACT_MODEL = 'claude-sonnet-5-5', JUDGE_MODEL = 'claude-haiku-5-5';
 S.apiKey = LS.get('sw_key', '');
 S.listening = null; S.judging = false; S.paste = null; S.catFilter = LS.get('sw_catf', '');
+S.kind = LS.get('sw_kind', 'word') === 'news' ? 'news' : 'word';
+if (S.catFilter && !CATS.includes(S.catFilter)) S.catFilter = '';
 const SEED = {id:'unit10-hurricane', name:'Unit 10. Hurricane Diary', createdAt:1794216600000, words:[
   {no:1,word:'bathtub',meaning:'욕조',alts:'목욕통, 욕탕, 목욕탕, 목욕하는 통, 목욕하는 곳, 욕실'},{no:2,word:'believe',meaning:'믿다',alts:'믿어요, 믿는다, 믿음, 신뢰하다, 진짜라고 생각하다, 확신하다, 생각하다'},{no:3,word:'fix',meaning:'고치다, 수리하다',alts:'고쳐요, 고치기, 수리, 수선하다, 바로잡다, 고쳐주다, 손보다, 고정하다'},
   {no:4,word:'flashlight',meaning:'손전등',alts:'랜턴, 전등, 플래시, 후레쉬, 불빛, 라이트, 램프, 손전등불'},{no:5,word:'go out',meaning:'(불, 전기 등이) 나가다, 꺼지다',alts:'꺼져요, 꺼짐, 끄다, 나가요, 정전, 불이 꺼지다, 전기가 나가다, 밖에 나가다, 외출하다'},{no:6,word:'ground',meaning:'땅바닥, 지면',alts:'땅, 바닥, 지상, 흙, 흙바닥, 길바닥'},
@@ -545,7 +604,7 @@ function listen(lang){
     }catch(e){ bad({code:'start_failed'}); }
   });
 }
-function stopListen(){ if (recog) try { recog.stop(); } catch(e){} }
+function stopListen(){ if (S.stopLong){ S.stopLong(); return; } if (recog) try { recog.stop(); } catch(e){} }
 function micErr(e){
   const c = e && e.code;
   if (c === 'not-allowed' || c === 'service-not-allowed') return '마이크 사용을 허용해 주세요 (주소창 옆 🔒 → 마이크 허용)';
@@ -750,7 +809,7 @@ async function speak(text, times){
 }
 const REPEAT = 2;
 let listenRun = 0;
-function stopAll(){ listenRun++; stopSpeech(); if (S.listen) S.listen.playing = false; if (S.listening){ stopListen(); S.listening = null; } }
+function stopAll(){ listenRun++; stopSpeech(); if (S.listen) S.listen.playing = false; if (S.nl) S.nl.playing = false; if (S.listening){ stopListen(); S.listening = null; } }
 
 /* ---------- storage ---------- */
 function loadUnits(){
@@ -769,11 +828,13 @@ function loadUnits(){
     }
     LS.set('sw_seedv', 2);
   }
-  S.units = list.filter(u => u && Array.isArray(u.words) && u.words.length).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  S.units = list.filter(u => u && (isNews(u) ? String(u.text || '').trim() : (Array.isArray(u.words) && u.words.length))).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   S.unitsLoading = false; render();
 }
 async function persistUnit(u){
-  const item = {id:u.id, name:u.name, cat:catNorm(u.cat), words:u.words.map(w => ({no:w.no, word:w.word, meaning:w.meaning, alts:w.alts || '', okHeard:w.okHeard || ''})), createdAt:u.createdAt};
+  const item = isNews(u)
+    ? {id:u.id, type:'news', name:u.name, cat:'', text:u.text, gloss:u.gloss || [], names:u.names || [], createdAt:u.createdAt}
+    : {id:u.id, name:u.name, cat:catNorm(u.cat), words:u.words.map(w => ({no:w.no, word:w.word, meaning:w.meaning, alts:w.alts || '', okHeard:w.okHeard || ''})), createdAt:u.createdAt};
   const list = LS.get('sw_units', []).filter(x => x.id !== u.id);
   list.unshift(item); LS.set('sw_units', list);
   S.units = [item].concat(S.units.filter(x => x.id !== u.id));
@@ -871,28 +932,38 @@ function undoMiss(t, idx){
 }
 function missCount(){ const m = S.miss || {}; return ['t1','t2','t3'].reduce((s, k) => s + Object.keys(m[k] || {}).length, 0); }
 function saveProgress(){
-  if (!S.unit) return;
+  if (!S.unit || S.unit.news) return;
   const n = S.unit.words.length;
   const t3 = S.t3 ? Object.assign({}, S.t3, {flash:null, selL:null, selR:null}) : null;
-  LS.set(progKey(S.unit.id), {n, t1:S.t1, t2:S.t2, t3, stats:S.stats, done:S.done, rc:S.rc, miss:S.miss,
+  LS.set(progKey(S.unit.id), {n, t1:S.t1, t2:S.t2, t3, stats:S.stats, done:S.done, rc:S.rc, miss:S.miss, missOld:S.missOld || {},
     listen: S.listen ? {i:S.listen.i, k:0, playing:false, finished:S.listen.finished} : null});
-  if (S.done.t1 && S.done.t2 && S.done.t3){
+  if (allDone()){
     const d = LS.get('sw_done', {});
     if (!d[S.unit.id]){ d[S.unit.id] = Date.now(); LS.set('sw_done', d); }
   }
 }
 function startUnit(u, fresh){
+  if (isNews(u)){ startNews(u, fresh); return; }
   stopAll();
   S.unit = {id:u.id, name:u.name, cat:catNorm(u.cat), words:u.words.map((w, i) => ({no: w.no || i + 1, word: w.word, meaning: w.meaning, alts: w.alts || '', okHeard: w.okHeard || ''}))};
   S.stats = {t1:0, t2:0, t3:0}; S.done = {}; S.rc = {};
   S.listen = {i:0, k:0, playing:false, finished:false};
-  S.t1 = S.t2 = S.t3 = null; S.miss = {t1:{}, t2:{}, t3:{}};
-  const pr = fresh ? null : LS.get(progKey(u.id), null);
-  if (fresh) LS.set(progKey(u.id), null);
-  if (pr && pr.n === S.unit.words.length && !(pr.done && pr.done.t1 && pr.done.t2 && pr.done.t3)){
+  S.t1 = S.t2 = S.t3 = null; S.miss = {t1:{}, t2:{}, t3:{}}; S.missOld = {};
+  const pr = LS.get(progKey(u.id), null);
+  const same = pr && pr.n === S.unit.words.length;
+  // 다 끝낸 단원을 다시 열거나 '다시 하기'를 눌러도 지난번 오답은 남겨 둔다.
+  // 그 테스트를 새로 시작할 때(initT1/2/3) 그 테스트의 오답만 새로 모은다.
+  const keepOld = () => {
+    if (!same || !pr.miss) return;
+    S.miss = Object.assign({t1:{}, t2:{}, t3:{}}, pr.miss);
+    ['t1','t2','t3'].forEach(k => { if (Object.keys(S.miss[k] || {}).length) S.missOld[k] = true; });
+  };
+  if (fresh){ LS.set(progKey(u.id), null); keepOld(); go('listen'); return; }
+  if (same && testsOf(S.unit).every(k => pr.done && pr.done[k])){ keepOld(); go('listen'); return; }
+  if (same){
     S.t1 = pr.t1 || null; S.t2 = pr.t2 || null; S.t3 = pr.t3 || null;
     S.stats = Object.assign({t1:0, t2:0, t3:0}, pr.stats || {}); S.done = pr.done || {}; S.rc = pr.rc || {};
-    S.miss = Object.assign({t1:{}, t2:{}, t3:{}}, pr.miss || {});
+    S.miss = Object.assign({t1:{}, t2:{}, t3:{}}, pr.miss || {}); S.missOld = pr.missOld || {};
     if (pr.listen) S.listen = Object.assign({i:0, k:0, playing:false, finished:false}, pr.listen);
     const resumeAt = !S.done.t1 && S.t1 ? 't1' : !S.done.t2 && S.t2 ? 't2' : !S.done.t3 && S.t3 ? 't3' : 'listen';
     go(resumeAt);
@@ -902,6 +973,7 @@ function startUnit(u, fresh){
   go('listen');
 }
 function go(screen){
+  if (S.unit && S.unit.news && /^n(listen|words|test)$/.test(screen)){ goNews(screen); return; }
   stopAll();
   if (screen === 't1' && !S.t1) initT1();
   if (screen === 't2'){ if (!S.t2) initT2(); else if (S.t2.active != null && !S.t2.result && !S.t2.phase) setTimeout(() => t2Ask(S.t2), 500); }
@@ -941,7 +1013,9 @@ async function runListen(){
 function scrollCur(){ const el = document.getElementById('curLi'); if (el && el.scrollIntoView) try { el.scrollIntoView({block:'nearest', behavior:'smooth'}); } catch(e){} }
 
 /* ---------- test 1 ---------- */
-function initT1(){ S.t1 = {round:1, queue:range(S.unit.words.length), pos:0, wrong:[], phase:'ask', stillWrong:[]}; S.stats.t1 = 0; }
+// 테스트를 새로 시작할 때 그 테스트의 지난번 오답만 비운다
+function freshMiss(k){ S.miss = S.miss || {t1:{}, t2:{}, t3:{}}; S.miss[k] = {}; if (S.missOld) delete S.missOld[k]; }
+function initT1(){ freshMiss('t1'); S.t1 = {round:1, queue:range(S.unit.words.length), pos:0, wrong:[], phase:'ask', stillWrong:[]}; S.stats.t1 = 0; }
 async function t1Mic(){
   if (S.listening) { stopListen(); return; }
   const T = S.t1, w = S.unit.words[T.queue[T.pos]];
@@ -1019,6 +1093,7 @@ function t1Next(){
 
 /* ---------- test 2 ---------- */
 function initT2(){
+  freshMiss('t2');
   const order = shuffle(range(S.unit.words.length));
   S.t2 = {round:1, order, pos:0, status:{}, active:order[0], revealed:false, result:null, heard:null, phase:null};
   S.stats.t2 = 0;
@@ -1070,7 +1145,7 @@ function t2Answer(ok){
 }
 
 /* ---------- test 3 ---------- */
-function initT3(){ S.t3 = {right:shuffle(range(S.unit.words.length)), matched:{}, selL:null, selR:null, flash:null}; S.stats.t3 = 0; }
+function initT3(){ freshMiss('t3'); S.t3 ={right:shuffle(range(S.unit.words.length)), matched:{}, selL:null, selR:null, flash:null}; S.stats.t3 = 0; }
 function t3Pick(side, i){
   const T = S.t3;
   if (T.matched[i] && ((side === 'l') || (side === 'r'))) return;
@@ -1103,29 +1178,43 @@ function unitStatus(u){
   const pr = LS.get(progKey(u.id), null);
   const d = (pr && pr.n === u.words.length && pr.done) || {};
   const chip = (k, l) => `<span class="${d[k] ? 'on' : ''}">${d[k] ? '✓ ' : ''}${l}</span>`;
-  if (!doneAt && !d.t1 && !d.t2 && !d.t3 && !(pr && (pr.t1 || pr.t2 || pr.t3))) return '';
-  return `<div class="ustat">${doneAt ? `<span class="gold">🏅 학습 완료 · ${fmtDate(doneAt)}</span>` : ''}${doneAt && !(d.t1 || d.t2 || d.t3) ? '' : chip('t1', '테스트1') + chip('t2', '테스트2') + chip('t3', '테스트3')}</div>`;
+  if (isNews(u)){
+    const np = LS.get('sw_nprog_' + u.id, null) || {};
+    if (!doneAt && np.best == null) return '';
+    return `<div class="ustat">${doneAt ? `<span class="gold">🏅 읽기 합격 · ${fmtDate(doneAt)}</span>` : ''}${np.best != null ? `<span class="${np.best >= PASS ? 'on' : ''}">최고 ${np.best}%</span>` : ''}</div>`;
+  }
+  const TS = testsOf(u);
+  if (!doneAt && !TS.some(k => d[k]) && !(pr && (pr.t1 || pr.t2 || pr.t3))) return '';
+  return `<div class="ustat">${doneAt ? `<span class="gold">🏅 학습 완료 · ${fmtDate(doneAt)}</span>` : ''}${doneAt && !TS.some(k => d[k]) ? '' : TS.map(k => chip(k, TNAME[k].replace(' ', ''))).join('')}</div>`;
 }
 function viewHome(){
   let list;
+  const NEWS = S.kind === 'news';
+  const wordUnits = S.units.filter(u => !isNews(u)), newsUnits = S.units.filter(isNews);
+  const kinds = `<div class="kinds"><button class="kind ${NEWS ? '' : 'on'}" data-act="kind" data-k="word">📚 단어 <span style="opacity:.75;font-size:17px">${wordUnits.length}</span></button>
+    <button class="kind ${NEWS ? 'on' : ''}" data-act="kind" data-k="news">📰 뉴스 <span style="opacity:.75;font-size:17px">${newsUnits.length}</span></button></div>`;
   if (S.unitsLoading) list = '<div class="muted">불러오는 중…</div>';
-  else if (!S.units.length) list = '<div class="card muted center">아직 저장된 단원이 없어요.<br>위 버튼으로 단어 사진을 올려 주세요.</div>';
+  else if (NEWS){
+    list = newsUnits.length ? '' : '<div class="card muted center">아직 저장된 뉴스 기사가 없어요.<br>사진 인식 앱에서 <b>📰 뉴스 기사</b>를 읽어 보내 주세요.</div>';
+  } else if (!wordUnits.length) list = '<div class="card muted center">아직 저장된 단원이 없어요.<br>위 버튼으로 단어 사진을 올려 주세요.</div>';
   else {
-  const f = S.catFilter || '';
-  const shown = S.units.filter(u => !f || catNorm(u.cat) === f);
-  list = `<div class="filters">${[['', '전체'], ['Benchmark Reading', '📖 Benchmark Reading'], ['Write It', '✏️ Write It']].map(x =>
-      `<button class="chip ${f === x[0] ? 'on' : ''}" data-act="cat-filter" data-c="${x[0]}">${x[1]} <span style="opacity:.7">${x[0] ? S.units.filter(u => catNorm(u.cat) === x[0]).length : S.units.length}</span></button>`).join('')}</div>`
-    + (shown.length ? '' : '<div class="card muted center">이 종류의 단원이 아직 없어요.</div>')
+    const f = S.catFilter || '';
+    list = `<div class="filters">${[['', '전체']].concat(CATS.map(c => [c, CAT_LABEL[c]])).map(x =>
+      `<button class="chip ${f === x[0] ? 'on' : ''}" data-act="cat-filter" data-c="${x[0]}">${x[1]} <span style="opacity:.7">${wordUnits.filter(u => inCat(u, x[0])).length}</span></button>`).join('')}</div>`;
+  }
+  const shown = NEWS ? newsUnits : wordUnits.filter(u => inCat(u, S.catFilter || ''));
+  if (!S.unitsLoading && (NEWS ? newsUnits.length : wordUnits.length)){
+    list += (shown.length ? '' : '<div class="card muted center">이 종류의 단원이 아직 없어요.</div>')
     + '<div class="units">' + shown.map(u => `
     <div class="card" style="padding:0">
       <div class="unit">
         <button class="unit-main" data-act="open" data-id="${esc(u.id)}">
-          ${catBadge(catNorm(u.cat))}
+          ${isNews(u) ? '<span class="cat etc">📰 뉴스</span>' : catBadge(catNorm(u.cat))}
           <div class="unit-name en">${esc(u.name)}</div>
           ${unitStatus(u)}
-          <div class="muted">${u.words.length}개 단어${u.createdAt ? ' · ' + fmtDate(u.createdAt) : ''}</div>
+          <div class="muted">${isNews(u) ? `${newsWordCount(u)}단어 · 뜻 단어 ${(u.gloss || []).length}개` : `${u.words.length}개 단어`}${u.createdAt ? ' · ' + fmtDate(u.createdAt) : ''}</div>
         </button>
-        <button class="icon-btn" data-act="edit" data-id="${esc(u.id)}" aria-label="고치기">✏️</button>
+        ${isNews(u) ? '' : `<button class="icon-btn" data-act="edit" data-id="${esc(u.id)}" aria-label="고치기">✏️</button>`}
         <button class="icon-btn" data-act="del" data-id="${esc(u.id)}" aria-label="지우기">🗑</button>
       </div>
       ${S.confirmDel === u.id ? `<div class="confirm" style="padding:0 18px 16px">정말 지울까요?
@@ -1134,11 +1223,12 @@ function viewHome(){
     </div>`).join('') + '</div>';
   }
   return `<div class="home-grid"><div class="home-left">
-    <div class="hero">${heroScene()}<div><span class="nick">동글빵 서희</span></div><h1>서희의 단어 바다</h1><p>인디고 차일드 단어 외우기</p></div>
-    <button class="btn big coral full" data-act="new">📷 새 단어 사진 올리기</button>
-    <button class="btn ghost full" data-act="clip-import" style="margin-top:10px">📥 복사한 단어 가져오기</button>
+    <div class="hero">${heroScene()}<div><span class="nick">동글빵 서희</span></div><h1>서희의 단어 바다</h1><p>인디고 차일드 단어 외우기 · 영어 뉴스 읽기</p></div>
+    <button class="btn big coral full" data-act="new">${NEWS ? '📰 새 뉴스 기사 올리기' : '📷 새 단어 사진 올리기'}</button>
+    <button class="btn ghost full" data-act="clip-import" style="margin-top:10px">📥 복사한 ${NEWS ? '기사' : '단어'} 가져오기</button>
     </div><div class="home-right">
-    <h2 class="sec">저장된 단원</h2>
+    ${kinds}
+    <h2 class="sec" style="margin-top:4px">${NEWS ? '저장된 뉴스 기사' : '저장된 단원'}</h2>
     ${list}
     ${S.unitsNote ? `<div class="note">${esc(S.unitsNote)}</div>` : ''}
     <div class="speedrow" style="flex-wrap:wrap"><button class="chip" data-act="share">📲 다른 기기에 설치 · 단원 옮기기</button>
@@ -1203,8 +1293,8 @@ function viewUpload(){
     <label class="field" for="unitName">단원 이름</label>
     <input class="inp" id="unitName" value="${esc(up.title)}" placeholder="예: Unit 10. Hurricane Diary">
     <div class="field" style="margin-top:14px">교재 종류</div>
-    <div class="catpick">${CATS.map(c => `<button class="chip ${up.cat === c ? 'on' : ''}" data-act="set-cat" data-c="${c}">${c === 'Write It' ? '✏️ Write It' : '📖 Benchmark Reading'}</button>`).join('')}
-      <button class="chip ${!up.cat ? 'on' : ''}" data-act="set-cat" data-c="">분류 없음</button></div>
+    <div class="catpick">${CATS.map(c => `<button class="chip ${up.cat === c ? 'on' : ''}" data-act="set-cat" data-c="${c}">${CAT_LABEL[c]}</button>`).join('')}</div>
+    ${catNorm(up.cat) === 'BEE' ? '<div class="muted" style="font-size:14px;margin-top:6px">🐝 BEE 단원은 테스트 1(영어 읽기)까지만 해요</div>' : ''}
     <div style="display:flex;justify-content:space-between;align-items:center;margin:20px 0 6px">
       <span class="count">총 ${n}개 단어</span>
       <span class="muted">틀린 글자는 눌러서 고쳐 주세요</span>
@@ -1223,7 +1313,7 @@ function viewUpload(){
 
 function shell(inner){
   const mc = missCount();
-  const steps = [['listen','듣기'],['review','복습'],['t1','테스트1'],['t2','테스트2'],['t3','테스트3'],['miss', mc ? `오답 ${mc}` : '오답']];
+  const steps = [['listen','듣기'],['review','복습']].concat(testsOf(S.unit).map(k => [k, TNAME[k].replace(' ', '')]), [['miss', mc ? `오답 ${mc}` : '오답']]);
   return `<div class="top">
       <button class="icon-btn" data-act="home" aria-label="처음으로">🏠</button>
       <div class="top-title en">${S.unit.cat ? catBadge(S.unit.cat) + ' ' : ''}${esc(S.unit.name)}</div>
@@ -1349,17 +1439,18 @@ function viewMiss(){
           <span class="en w">${esc(W[j].word)}</span><span class="m">${esc(W[j].meaning)}</span>
           <span class="cnt">${m[k][j]}번</span><span class="spk">🔊</span></button>`).join('')
       : `<div class="mempty">${started || done ? '틀린 단어가 없어요 👏' : '아직 안 했어요'}</div>`;
-    return `<div class="card mcard"><div class="mhead"><span>${icon} ${title}</span><span class="muted" style="font-size:14px">${sub}${ids.length ? ` · ${ids.length}개` : ''}</span></div>${body}</div>`;
+    const old = S.missOld && S.missOld[k] && ids.length ? `<div class="muted" style="font-size:13px;margin:-4px 4px 6px">지난번 공부에서 틀린 단어예요</div>` : '';
+    return `<div class="card mcard"><div class="mhead"><span>${icon} ${title}</span><span class="muted" style="font-size:14px">${sub}${ids.length ? ` · ${ids.length}개` : ''}</span></div>${old}${body}</div>`;
   };
-  const total = missCount();
+  const total = missCount(), TS = testsOf(S.unit);
   return shell(`<div class="hint">틀린 단어 모아 보기 📒</div>
     ${total ? `<div class="row" style="margin-top:0;margin-bottom:12px"><button class="btn coral" data-act="miss-all">🔊 틀린 단어 전부 들어 보기</button></div>` : ''}
     <div class="miss-grid">${sec('t1', '📣', '테스트 1', '영어 읽기')}
-    ${sec('t2', '🗣', '테스트 2', '뜻 말하기')}
-    ${sec('t3', '🧩', '테스트 3', '짝 맞추기')}</div>
+    ${TS.includes('t2') ? sec('t2', '🗣', '테스트 2', '뜻 말하기') : ''}
+    ${TS.includes('t3') ? sec('t3', '🧩', '테스트 3', '짝 맞추기') : ''}</div>
     <div class="muted center" style="margin-top:10px;font-size:14px">단어를 누르면 읽어 줘요 · 많이 틀린 단어가 위에 있어요</div>`);
 }
-function allDone(){ return !!(S.done.t1 && S.done.t2 && S.done.t3); }
+function allDone(){ return !!S.unit && testsOf(S.unit).every(k => S.done[k]); }
 function finishTest(k){
   S.done[k] = true;
   beep(true); setTimeout(() => beep(true), 230);
@@ -1372,9 +1463,10 @@ function finishTest(k){
 const TNAME = {t1:'테스트 1', t2:'테스트 2', t3:'테스트 3'};
 const TWA = {t1:'과', t2:'와', t3:'과'}, TI = {t1:'이', t2:'가', t3:'이'};
 function clearBlock(k, stat, extra){
-  const left = ['t1','t2','t3'].filter(x => !S.done[x]);
+  const TS = testsOf(S.unit);
+  const left = TS.filter(x => !S.done[x]);
   let msg;
-  if (!left.length) msg = '테스트 3개를 모두 끝냈어요! 🎉';
+  if (!left.length) msg = TS.length === 1 ? '테스트를 끝냈어요! 🎉' : `테스트 ${TS.length}개를 모두 끝냈어요! 🎉`;
   else if (left.length === 1) msg = `<b>${TNAME[left[0]]}</b>만 남았어요! 조금만 더 힘내요 💪`;
   else msg = `<b>${TNAME[left[0]]}</b>${TWA[left[0]]} <b>${TNAME[left[1]]}</b>${TI[left[1]]} 남았어요`;
   const pals = ['bunny', 'cat', 'puppy', 'bear', 'chick'].sort(() => Math.random() - .5).slice(0, 3);
@@ -1385,7 +1477,7 @@ function clearBlock(k, stat, extra){
     <h3 class="clear-title">잘했어요~! 🎉</h3>
     <div class="clear-sub">${TNAME[k]} (${titles[k]}) 완료 · ${stat}</div>
     <div class="clear-left">${msg}</div>
-    <div class="tdots">${['t1','t2','t3'].map(x => `<span class="${S.done[x] ? 'on' : ''}">${S.done[x] ? '✓' : ''} ${TNAME[x]}</span>`).join('')}</div>
+    <div class="tdots">${TS.map(x => `<span class="${S.done[x] ? 'on' : ''}">${S.done[x] ? '✓' : ''} ${TNAME[x]}</span>`).join('')}</div>
     ${extra || ''}
     <div class="row">${left.map((x, n) => `<button class="btn big ${n ? 'ghost' : 'coral'}" data-act="go" data-to="${x}">${TNAME[x]} 하러 가기 →</button>`).join('')}
       ${!left.length ? `<button class="btn big coral" data-act="go" data-to="done">🎉 축하 화면 보기</button>` : ''}</div>
@@ -1418,7 +1510,7 @@ function viewT3(){
 
 function viewDone(){
   if (!allDone()){
-    const left = ['t1','t2','t3'].filter(x => !S.done[x]);
+    const left = testsOf(S.unit).filter(x => !S.done[x]);
     return shell(`<div class="card banner"><h3>아직 남은 테스트가 있어요</h3><div class="row">${left.map(x => `<button class="btn big coral" data-act="go" data-to="${x}">${TNAME[x]} 하러 가기 →</button>`).join('')}</div></div>`);
   }
   const colors = ['#FF7A9A','#FFD23F','#7FD1FF','#9B8CFF','#7BE0AD','#FFA45B'];
@@ -1434,11 +1526,405 @@ function viewDone(){
       <div class="muted" style="margin-top:6px">오늘 ${S.unit.words.length}개 단어를 모두 공부했어요 💯</div>
       <div class="stats">
         <div class="stat">📣 테스트 1 · 처음에 틀린 단어 <b>${S.stats.t1}개</b></div>
-        <div class="stat">🗣 테스트 2 · 틀린 횟수 <b>${S.stats.t2}번</b></div>
-        <div class="stat">🧩 테스트 3 · 틀린 횟수 <b>${S.stats.t3}번</b></div>
+        ${testsOf(S.unit).includes('t2') ? `<div class="stat">🗣 테스트 2 · 틀린 횟수 <b>${S.stats.t2}번</b></div>
+        <div class="stat">🧩 테스트 3 · 틀린 횟수 <b>${S.stats.t3}번</b></div>` : ''}
       </div>
+      <div class="row">${missCount() ? `<button class="btn big coral" data-act="go" data-to="miss">📒 틀린 단어 보기 (${missCount()})</button>` : `<div class="mempty" style="flex:1">틀린 단어가 하나도 없어요 👏</div>`}</div>
       <div class="row"><button class="btn big ghost" data-act="restart">🔁 다시 하기</button><button class="btn big" data-act="home">🏠 처음으로</button></div>
     </div>`;
+}
+
+/* ---------- 📰 뉴스 읽기 ---------- */
+const PASS = 90;   // 읽기 테스트 합격 기준(%)
+const NEWS_TOKEN = /[A-Za-z0-9]+(?:['’\-][A-Za-z0-9]+)*/g;
+const NOT_NAME = new Set(['i', "i'm", "i'll", "i've", "i'd", 'i’m', 'i’ll', 'i’ve', 'i’d']);
+function newsWordCount(u){ return (String(u.text || '').match(NEWS_TOKEN) || []).length; }
+// 단어의 기본형 후보 (evacuated → evacuate, storms → storm, stopped → stop)
+function baseForms(w){
+  w = String(w).toLowerCase().replace(/’/g, "'").replace(/'s$/, '');
+  const out = new Set([w]);
+  const add = x => { if (x && x.length >= 2) out.add(x); };
+  if (/ies$/.test(w)) add(w.slice(0, -3) + 'y');
+  if (/ied$/.test(w)) add(w.slice(0, -3) + 'y');
+  if (/(s|x|z|ch|sh)es$/.test(w)) add(w.slice(0, -2));
+  if (/[^s]s$/.test(w)) add(w.slice(0, -1));
+  if (/ed$/.test(w)){ add(w.slice(0, -2)); add(w.slice(0, -1)); if (/([^aeiou])\1ed$/.test(w)) add(w.slice(0, -3)); }
+  if (/ing$/.test(w)){ add(w.slice(0, -3)); add(w.slice(0, -3) + 'e'); if (/([^aeiou])\1ing$/.test(w)) add(w.slice(0, -4)); }
+  return out;
+}
+function parseNews(u){
+  const text = String(u.text || '').replace(/\r/g, '').trim();
+  const parts = (/\n\s*\n/.test(text) ? text.split(/\n\s*\n+/) : text.split(/\n+/)).map(s => s.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
+  const words = [], paras = [];
+  parts.forEach((pt, p) => {
+    const P = {text: pt, w: [], sents: []}; paras.push(P);
+    const re = new RegExp(NEWS_TOKEN.source, 'g'); let m;
+    while ((m = re.exec(pt))){ P.w.push(words.length); words.push({t: m[0], p, a: m.index, b: m.index + m[0].length, s: 0, first: false, g: -1, free: false}); }
+    let cur = null;
+    P.w.forEach((gi, k) => {
+      const W = words[gi];
+      if (!cur){ cur = {from: gi, to: gi}; W.first = true; P.sents.push(cur); }
+      cur.to = gi; W.s = P.sents.length - 1;
+      const after = pt.slice(W.b, k + 1 < P.w.length ? words[P.w[k + 1]].a : pt.length);
+      // 문장 끝: . ! ? 다음에 띄어쓰기(또는 문단 끝). Mr. Dr. U.S. 같은 줄임말은 문장 끝이 아님
+      if (/^[.!?]+["'”’)\]]*(\s|$)/.test(after) && !/^(mr|mrs|ms|dr|jr|sr|vs)$/i.test(W.t) && !/^[A-Z]$/.test(W.t)) cur = null;
+    });
+  });
+  // 이름·지명·숫자는 채점하지 않음(무조건 정답)
+  const nameSeqs = (Array.isArray(u.names) ? u.names : []).map(n => (String(n).match(NEWS_TOKEN) || []).map(x => x.toLowerCase())).filter(x => x.length);
+  words.forEach((W, i) => {
+    if (/\d/.test(W.t)) W.free = true;
+    else if (!W.first && /^[A-Z]/.test(W.t) && !NOT_NAME.has(W.t.toLowerCase())) W.free = true;
+    nameSeqs.forEach(seq => {
+      if (seq.every((x, k) => words[i + k] && words[i + k].p === W.p && words[i + k].t.toLowerCase().replace(/’/g, "'").replace(/'s$/, '') === x))
+        seq.forEach((x, k) => { words[i + k].free = true; });
+    });
+  });
+  // 뜻 단어 밑줄: 기사 아래 단어 목록에 있는 단어만
+  const gloss = (Array.isArray(u.gloss) ? u.gloss : []).map(x => ({term: String((x && x[0]) || '').trim(), mean: String((x && x[1]) || '').trim(), hits: 0})).filter(x => x.term);
+  gloss.forEach((g, gi) => {
+    const tw = (g.term.replace(/\([^)]*\)/g, ' ').match(NEWS_TOKEN) || []).map(x => x.toLowerCase().replace(/’/g, "'"));
+    if (!tw.length) return;
+    for (let i = 0; i + tw.length <= words.length; i++){
+      let ok = true;
+      for (let k = 0; k < tw.length && ok; k++){
+        const W = words[i + k];
+        if (W.p !== words[i].p){ ok = false; break; }
+        const tl = W.t.toLowerCase().replace(/’/g, "'");
+        ok = tl === tw[k] || baseForms(W.t).has(tw[k]) || baseForms(tw[k]).has(tl);
+      }
+      if (ok){ g.hits++; for (let k = 0; k < tw.length; k++) if (words[i + k].g < 0) words[i + k].g = gi; }
+    }
+  });
+  return {paras, words, gloss};
+}
+function startNews(u, fresh){
+  stopAll();
+  const N = parseNews(u);
+  S.unit = {id:u.id, name:u.name, cat:'', news:true, N, words:[]};
+  S.done = {}; S.gb = null; S.nt = null; S.miss = {t1:{}, t2:{}, t3:{}};
+  S.nl = {pos:0, to:null, playing:false, finished:false};
+  const pr = fresh ? null : LS.get('sw_nprog_' + u.id, null);
+  if (pr && pr.nw === N.words.length){
+    S.done = pr.done || {};
+    if (pr.nl && pr.nl.pos < N.words.length) S.nl.pos = pr.nl.pos || 0;
+    if (pr.nt && pr.nt.phase !== 'end' && Array.isArray(pr.nt.res) && pr.nt.res.length === N.words.length){ S.nt = pr.nt; S.nt.phase = S.nt.phase === 'checked' ? 'checked' : 'read'; }
+  }
+  goNews(S.nt ? 'ntest' : 'nlisten');
+  if (S.nt) toast('하던 곳부터 이어서 해요 👍', 'good', 1600);
+}
+function saveNews(){
+  if (!S.unit || !S.unit.news) return;
+  const key = 'sw_nprog_' + S.unit.id, old = LS.get(key, null) || {};
+  LS.set(key, {nw:S.unit.N.words.length, done:S.done, nl:{pos:S.nl.pos}, nt:S.nt, best:old.best, last:old.last});
+}
+function goNews(screen){
+  stopAll(); S.gb = null;
+  if (screen === 'ntest' && !S.nt) initNT();
+  if (screen === 'nwords') S.done.nwords = true;
+  S.screen = screen; render(); window.scrollTo(0, 0);
+}
+function scrollNow(){
+  const w = document.getElementById('nowW'), p = document.querySelector('.art p.now');
+  const el = w || p;
+  if (el && el.scrollIntoView) try { el.scrollIntoView({block: w ? 'center' : 'start', behavior:'smooth'}); } catch(e){}
+}
+// 아래쪽 조작 막대 높이만큼 기사 아래에 여백을 둬서 마지막 문단도 가리지 않게
+function fitCtl(){
+  const c = app.querySelector('.ntctl'), a = app.querySelector('.nart');
+  if (c && a) a.style.setProperty('--ctlh', (getComputedStyle(c).position === 'fixed' ? c.offsetHeight + 24 : 0) + 'px');
+}
+
+/* 듣기: 문장 단위로 읽고, 누른 단어부터 이어 읽기 */
+function sentEndOf(N, gi){ const W = N.words[gi]; return N.paras[W.p].sents[W.s].to; }
+function chunkText(N, from, to){
+  const P = N.paras[N.words[from].p], nx = N.words[to + 1];
+  return P.text.slice(N.words[from].a, nx && nx.p === N.words[to].p ? nx.a : P.text.length).trim();
+}
+async function runNews(){
+  const my = ++listenRun, L = S.nl, N = S.unit.N;
+  if (L.finished || L.pos >= N.words.length){ L.pos = 0; L.finished = false; }
+  L.playing = true; render(); scrollNow();
+  await sleep(80);
+  while (L.pos < N.words.length){
+    if (my !== listenRun) return;
+    const to = sentEndOf(N, L.pos);
+    L.to = to; render(); scrollNow();
+    await speakOnce(chunkText(N, L.pos, to));
+    if (my !== listenRun) return;
+    const nx = N.words[to + 1];
+    await sleep(nx && nx.p !== N.words[to].p ? 700 : 350);
+    if (my !== listenRun) return;
+    L.pos = to + 1;
+  }
+  L.pos = 0; L.to = null; L.playing = false; L.finished = true; S.done.nlisten = true;
+  beep(true); render();
+}
+
+/* 읽기 테스트: 긴 음성 인식(잠깐 쉬어도 이어서 듣기) */
+function listenLong(lang){
+  return new Promise((res, rej) => {
+    if (!SR){ rej({code:'no_sr'}); return; }
+    stopSpeech();
+    let finals = [], interim = '', settled = false, stopReq = false, gotThis = false, hardT = null;
+    const live = v => { if (S.micLive !== v){ S.micLive = v; render(); } };
+    const text = () => (finals.join(' ') + ' ' + interim).replace(/\s+/g, ' ').trim();
+    const end = () => { clearTimeout(hardT); recog = null; S.micLive = false; S.stopLong = null; };
+    const fin = () => { if (settled) return; settled = true; end(); res(text()); };
+    const fail = v => { if (settled) return; settled = true; end(); rej(v); };
+    const startOne = () => {
+      gotThis = false;
+      let r; try { r = new SR(); } catch(e){ fail({code:'start_failed'}); return; }
+      recog = r;
+      r.lang = lang; r.interimResults = true; r.continuous = true; r.maxAlternatives = 1;
+      r.onaudiostart = () => live(true);
+      r.onresult = e => {
+        let im = '';
+        for (let i = e.resultIndex || 0; i < e.results.length; i++){
+          const rr = e.results[i], t = rr[0] ? String(rr[0].transcript || '') : '';
+          if (rr.isFinal === false) im += ' ' + t;
+          else if (t.trim()){ finals.push(t.trim()); gotThis = true; }
+        }
+        interim = im.trim(); if (interim) gotThis = true;
+      };
+      r.onerror = e => { if (['no-speech', 'aborted', 'no-match'].includes(e.error)) return; fail({code:e.error || 'error'}); };
+      r.onend = () => {
+        if (settled) return;
+        if (interim){ finals.push(interim); interim = ''; }
+        if (stopReq || !gotThis){ fin(); return; }
+        startOne();
+      };
+      try { r.start(); } catch(e){ fail({code:'start_failed'}); }
+    };
+    S.stopLong = () => { stopReq = true; try { if (recog) recog.stop(); } catch(e){} setTimeout(fin, 2500); };
+    S.micLive = false;
+    startOne();
+    hardT = setTimeout(() => { if (S.stopLong) S.stopLong(); }, 180000);
+  });
+}
+const HOMO = {two:'to', too:'to', four:'for', their:'there', theyre:'there', youre:'your', buy:'by', bye:'by', knew:'new', write:'right', hear:'here', won:'one', eight:'ate', sea:'see', whole:'hole', weather:'whether', ware:'wear', where:'wear', our:'hour', its:'its'};
+const homo = x => HOMO[x] || x;
+function nwMatch(pw, h){
+  const a = homo(normEn(pw)), b = homo(normEn(h));
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (a.length >= 4 && lev(a, b) <= (a.length >= 7 ? 2 : 1)) return true;
+  const sa = sound(a), sb = sound(b);
+  if (sa.length >= 2 && sa === sb) return true;
+  if (a.length >= 5 && lev(sa, sb) <= 1) return true;
+  return false;
+}
+// 기사 단어(P)와 들린 말(H)을 순서대로 맞춰 보기 → 맞게 읽은 단어 표시
+function alignRead(P, H){
+  const n = P.length, m = H.length, INF = 1e9;
+  const dp = Array.from({length:n + 1}, () => new Float64Array(m + 1).fill(INF));
+  const bk = Array.from({length:n + 1}, () => new Int8Array(m + 1));
+  dp[0][0] = 0;
+  for (let i = 0; i <= n; i++) for (let j = 0; j <= m; j++){
+    const c = dp[i][j]; if (c >= INF) continue;
+    const up = (a, b, v, k) => { if (v < dp[a][b]){ dp[a][b] = v; bk[a][b] = k; } };
+    if (i < n){
+      up(i + 1, j, c + (P[i].free ? 0 : 1), 1);
+      if (j < m && (P[i].free || nwMatch(P[i].w, H[j]))) up(i + 1, j + 1, c, 2);
+      if (j + 1 < m && !P[i].free && nwMatch(P[i].w, H[j] + H[j + 1])) up(i + 1, j + 2, c, 3);
+      if (j < m && !P[i].free) up(i + 1, j + 1, c + 1.2, 5);
+    }
+    if (j < m) up(i, j + 1, c + 0.6, 4);
+  }
+  const ok = new Array(n).fill(false);
+  let i = n, j = m;
+  while (i > 0 || j > 0){
+    const k = bk[i][j];
+    if (k === 1) i--;
+    else if (k === 2){ i--; j--; ok[i] = true; }
+    else if (k === 3){ i--; j -= 2; ok[i] = true; }
+    else if (k === 4) j--;
+    else if (k === 5){ i--; j--; }
+    else break;
+  }
+  return ok;
+}
+function initNT(){
+  const N = S.unit.N;
+  S.nt = {res: N.words.map(W => W.free ? 'free' : null), heard:{}, queue: range(N.paras.length), qi:0, phase:'read', score:null};
+}
+function gradePara(p, txt){
+  const T = S.nt, N = S.unit.N, ids = N.paras[p].w;
+  const H = (String(txt).match(/[A-Za-z0-9]+(?:['’][A-Za-z]+)*/g) || []);
+  const ok = alignRead(ids.map(gi => ({w: N.words[gi].t, free: N.words[gi].free})), H);
+  ids.forEach((gi, k) => { T.res[gi] = N.words[gi].free ? 'free' : ok[k] ? 'ok' : 'bad'; });
+}
+function paraScore(p){
+  const T = S.nt; let ok = 0, bad = 0;
+  S.unit.N.paras[p].w.forEach(gi => { if (T.res[gi] === 'ok') ok++; else if (T.res[gi] === 'bad') bad++; });
+  return {ok, bad, pct: ok + bad ? Math.floor(ok * 100 / (ok + bad)) : 100};
+}
+function totalScore(){
+  let ok = 0, n = 0;
+  S.nt.res.forEach(r => { if (r === 'free') return; n++; if (r === 'ok') ok++; });
+  return n ? Math.floor(ok * 100 / n) : 100;
+}
+// 빨간(못 읽은) 부분을 이어진 덩어리로 묶기
+function badPhrases(ps){
+  const T = S.nt, N = S.unit.N, out = [];
+  ps.forEach(p => {
+    const P = N.paras[p]; let st = null, last = null;
+    const flush = () => { if (st != null){ out.push(P.text.slice(N.words[st].a, N.words[last].b)); st = null; } };
+    P.w.forEach(gi => { if (T.res[gi] === 'bad'){ if (st == null) st = gi; last = gi; } else flush(); });
+    flush();
+  });
+  return out;
+}
+async function speakList(list){
+  stopSpeech(); const tok = speechToken;
+  await sleep(60);
+  for (const t of list){ if (tok !== speechToken) return; await speakOnce(t); await sleep(600); }
+}
+async function ntMic(){
+  if (S.listening){ stopListen(); return; }
+  const T = S.nt, p = T.queue[T.qi];
+  stopSpeech(); S.gb = null; S.listening = 'nt'; render(); scrollNow();
+  let txt;
+  try { txt = await listenLong('en-US'); }
+  catch(e){ S.listening = null; render(); toast(micErr(e), 'bad', 2600); return; }
+  S.listening = null;
+  if (S.screen !== 'ntest' || S.nt !== T) return;
+  if (!txt){ render(); toast('잘 안 들렸어요 🙉 "지금 읽어요!"가 보이면 읽어 봐요', '', 2400); return; }
+  T.heard[p] = txt;
+  gradePara(p, txt);
+  T.phase = 'checked';
+  const r = paraScore(p);
+  if (!r.bad){ beep(true); react(true); } else beep(r.pct >= PASS);
+  render(); scrollNow();
+  if (r.bad) setTimeout(() => { if (S.nt === T && T.phase === 'checked' && S.screen === 'ntest') speakList(badPhrases([p])); }, 900);
+}
+function finishNT(){
+  const T = S.nt; T.phase = 'end'; T.score = totalScore();
+  const key = 'sw_nprog_' + S.unit.id, pr = LS.get(key, null) || {};
+  pr.best = Math.max(pr.best == null ? 0 : pr.best, T.score); pr.last = T.score; LS.set(key, pr);
+  if (T.score >= PASS){
+    S.done.ntest = true;
+    const d = LS.get('sw_done', {}); if (!d[S.unit.id]){ d[S.unit.id] = Date.now(); LS.set('sw_done', d); }
+    beep(true); setTimeout(() => beep(true), 230); react(true, 1400);
+    setTimeout(() => { if (S.screen === 'ntest') speak('Great reading, Seohee!'); }, 1000);
+  } else beep(false);
+  render(); window.scrollTo(0, 0);
+}
+
+/* 뉴스 화면 */
+function nshell(inner){
+  const steps = [['nlisten','듣기'],['nwords','단어'],['ntest','읽기 테스트']];
+  return `<div class="top">
+      <button class="icon-btn" data-act="home" aria-label="처음으로">🏠</button>
+      <div class="top-title en"><span class="cat etc">📰 뉴스</span> ${esc(S.unit.name)}</div>
+      <button class="chip" data-act="speed">🐢 ${speedLabel()}</button>
+    </div>
+    <div class="steps">${steps.map(s => `<button class="step ${S.screen === s[0] ? 'on' : ''} ${S.done[s[0]] ? 'done' : ''}" data-act="go" data-to="${s[0]}">${S.done[s[0]] ? '✓' : ''}${s[1]}</button>`).join('')}</div>
+    ${inner}`;
+}
+function articleHTML(o){
+  const N = S.unit.N;
+  return `<div class="art"><h3>${esc(S.unit.name)}</h3>${N.paras.map((P, p) => {
+    let h = '', last = 0;
+    P.w.forEach(gi => {
+      const W = N.words[gi];
+      h += esc(P.text.slice(last, W.a)) + `<span class="nw${W.g >= 0 ? ' g' : ''} ${o.cls ? o.cls(gi) : ''}" data-act="n-tap" data-i="${gi}"${o.now && o.now(gi) ? ' id="nowW"' : ''}>${esc(W.t)}</span>`;
+      last = W.b;
+    });
+    return `<p class="${o.pcls ? o.pcls(p) : ''}" data-p="${p}">${h}${esc(P.text.slice(last))}</p>`;
+  }).join('')}</div>`;
+}
+function glossBubble(){
+  if (!S.gb || !S.unit || !S.unit.news) return '';
+  const g = S.unit.N.gloss[S.gb.g]; if (!g) return '';
+  return `<div class="gbub" id="gbub" style="visibility:hidden"><div class="gt">${esc(g.term)}</div><div class="gm">${esc(g.mean)}</div>
+    <div style="display:flex;gap:6px;justify-content:center"><button class="btn small" data-act="n-gsay">🔊 듣기</button>${S.screen === 'nlisten' ? '<button class="btn small ghost" data-act="n-from">▶ 여기부터 읽기</button>' : ''}<button class="btn small ghost" data-act="n-gclose" aria-label="닫기">✕</button></div></div>`;
+}
+function placeBubble(){
+  const bb = document.getElementById('gbub'); if (!bb || !S.gb) return;
+  const w = app.querySelector(`.nw[data-i="${S.gb.i}"]`); if (!w){ bb.remove(); return; }
+  const r = w.getBoundingClientRect(), bw = bb.offsetWidth, bh = bb.offsetHeight;
+  const cx = r.left + r.width / 2;
+  const left = Math.max(8, Math.min(window.innerWidth - bw - 8, cx - bw / 2));
+  let top = r.top - bh - 12;
+  if (top < 8){ top = r.bottom + 12; bb.classList.add('below'); }
+  bb.style.left = left + 'px'; bb.style.top = top + 'px';
+  bb.style.setProperty('--ax', Math.max(14, Math.min(bw - 14, cx - left)) + 'px');
+  bb.style.visibility = 'visible';
+}
+window.addEventListener('scroll', () => { if (S.gb && S.screen !== 'nwords'){ const el = document.getElementById('gbub'); if (el) placeBubble(); } }, {passive:true});
+window.addEventListener('resize', () => placeBubble());
+
+function viewNListen(){
+  const L = S.nl;
+  const started = L.playing || L.pos > 0 || L.finished;
+  const ctl = `<div class="card center" style="padding:14px 16px">
+    <div class="label">${L.playing ? '읽어 주는 중 🔊' : L.finished ? '끝까지 들었어요! 👏' : '🎧 기사 듣기'}</div>
+    <div class="row" style="margin-top:12px">${L.playing
+      ? `<button class="btn big ghost" data-act="n-pause">⏸ 잠깐 멈춤</button>`
+      : `<button class="btn big" data-act="n-play">${L.finished ? '🔁 처음부터 다시' : started ? '▶ 이어 듣기' : '▶ 처음부터 듣기'}</button>`}</div>
+    <div class="muted" style="margin-top:10px;font-size:15px;line-height:1.5">👆 글자를 누르면 거기서부터 읽어 줘요<br><span class="nw g" style="cursor:default">밑줄 단어</span>를 누르면 뜻이 나와요</div></div>`;
+  const art = articleHTML({cls: gi => (L.playing && L.to != null && gi >= L.pos && gi <= L.to) ? 'cur' : '', now: gi => L.playing && gi === L.pos});
+  return nshell(`<div class="split"><div class="split-a ntctl">${ctl}<button class="btn big coral full next" data-act="go" data-to="ntest">다음: 읽기 테스트 →</button></div><div class="split-b nart">${art}</div></div>`) + glossBubble();
+}
+function viewNWords(){
+  const N = S.unit.N;
+  if (!N.gloss.length) return nshell(`<div class="card muted center">이 기사에는 뜻 단어가 없어요.<br>사진 인식 앱에서 기사 아래 단어 목록 사진도 같이 올려 주세요.</div>`);
+  return nshell(`<div class="hint">기사에 나오는 어려운 단어예요. 누르면 읽어 줘요 🔊</div>
+    <div class="glist">${N.gloss.map((g, k) => `<button class="gcard" data-act="n-gword" data-i="${k}"><div class="gt">${esc(g.term)}</div><div class="gm">${esc(g.mean)}</div>${g.hits ? '' : '<div class="muted" style="font-size:12px;margin-top:4px">기사 안에서는 못 찾았어요</div>'}</button>`).join('')}</div>
+    <button class="btn big coral full next" data-act="go" data-to="ntest">읽기 테스트 하러 가기 →</button>`);
+}
+function viewNTest(){
+  const T = S.nt, N = S.unit.N, li = S.listening === 'nt';
+  const legend = `<div class="legend"><span class="nw ok">맞게 읽음</span><span class="nw bad">다시 연습</span><span class="nw free">이름·지명·숫자 (채점 안 함)</span></div>`;
+  const title = `<div class="hint">읽기 테스트 · ${PASS}% 넘으면 합격!<button class="resetchip" data-act="nt-reset">🔁 처음부터</button></div>`;
+  const cls = gi => T.res[gi] || '';
+  if (T.phase === 'end'){
+    const sc = T.score, pass = sc >= PASS, bads = badPhrases(range(N.paras.length));
+    const badParas = range(N.paras.length).filter(p => paraScore(p).bad);
+    const card = pass
+      ? `<div class="card clearcard"><div class="confetti">${range(16).map(j => `<i style="left:${(j * 41) % 100}%;background:${['#FF7A9A','#FFD23F','#7FD1FF','#9B8CFF','#7BE0AD'][j % 5]};animation-delay:${(j % 7) * .4}s;animation-duration:${3 + (j % 3) * .7}s"></i>`).join('')}</div>
+          <div class="clear-chars"><span>${animalSVG('bunny', 'yay')}</span><span class="mid">${dongglebbang(120, 'happy')}</span><span>${animalSVG('cat', 'yay')}</span></div>
+          <h3 class="clear-title">합격! 정말 잘 읽었어요~! 🎉</h3><div class="score">${sc}%</div>
+          <div class="clear-sub">기사 전체에서 ${sc}%를 맞게 읽었어요 (합격 ${PASS}%)</div>`
+      : `<div class="card banner"><div class="em">💪</div><h3>조금만 더 힘내요!</h3><div class="score">${sc}%</div>
+          <div class="muted">${PASS}%가 넘으면 합격이에요. 빨간 부분을 듣고 다시 읽어 봐요</div>`;
+    return nshell(title + card + `
+      <div class="row">${bads.length ? `<button class="btn ${pass ? 'ghost' : 'coral'}" data-act="nt-sayall">🔊 틀린 부분 들어 보기</button>` : ''}
+        ${badParas.length ? `<button class="btn ${pass ? 'ghost' : ''}" data-act="nt-retrybad">📕 틀린 문단만 다시 읽기</button>` : ''}
+        <button class="btn ghost" data-act="nt-reset">🔁 처음부터 다시</button></div>
+      ${pass ? `<div class="row"><button class="btn big" data-act="home">🏠 처음으로</button></div>` : ''}</div>
+      <div class="mt">${legend}${articleHTML({cls})}</div>`) + glossBubble();
+  }
+  const p = T.queue[T.qi], r = paraScore(p);
+  const prog = progress(T.qi + (T.phase === 'checked' ? 1 : 0), T.queue.length, T.queue.length < N.paras.length ? '틀린 문단 다시 읽기' : '문단마다 읽기', `${T.qi + 1} / ${T.queue.length} 문단`);
+  let ctl;
+  if (T.phase === 'read'){
+    ctl = `<div class="card center" style="padding:14px 16px">
+      <div class="label ${li && S.micLive ? 'live' : ''}">${li ? (S.micLive ? '지금 읽어요! 🎙' : '마이크 준비 중…') : `${T.qi + 1}번째 문단을 소리 내어 읽어요`}</div>
+      ${SR ? `<div class="row"><button class="btn big mic ${li ? 'on' : ''}" data-act="nt-mic">${li ? '⏹ 다 읽었어요' : '🎤 읽기 시작'}</button></div>`
+           : `<div class="note">이 브라우저는 음성 인식이 안 돼요. 크롬이나 삼성 인터넷으로 열어 주세요.</div>`}
+      <div class="muted" style="font-size:14px;margin-top:8px">다 읽으면 <b>⏹ 다 읽었어요</b>를 눌러요 · 회색 글자는 채점 안 해요</div></div>`;
+  } else {
+    ctl = `<div class="card center" style="padding:14px 16px">
+      <div class="label" style="${r.bad ? 'background:var(--bad-bg);color:var(--bad-d)' : 'background:var(--ok-bg);color:var(--ok-d)'}">${r.bad ? `빨간 글자 ${r.bad}개를 연습해 봐요` : '이 문단 완벽해요! 🎉'}</div>
+      <div class="score" style="font-size:34px">${r.pct}%</div>
+      <div class="row" style="margin-top:6px">${r.bad ? `<button class="btn ghost" data-act="nt-saybad">🔊 틀린 부분 듣기</button>` : ''}<button class="btn ghost" data-act="nt-again">🔁 다시 읽기</button></div>
+      <div class="row"><button class="btn big coral" data-act="nt-next">${T.qi + 1 < T.queue.length ? '다음 문단 →' : '결과 보기 →'}</button></div>
+      ${r.bad ? `<div class="row" style="margin-top:10px"><button class="btn small okghost" data-act="nt-override" style="flex:none">🙋 제대로 읽었어요</button></div>` : ''}</div>`;
+  }
+  const art = articleHTML({cls, pcls: q => q === p ? 'now' : 'dim'});
+  return nshell(title + prog + `<div class="split"><div class="split-a ntctl tt">${ctl}${legend}</div><div class="split-b nart"><div class="leg-top">${legend}</div>${art}</div></div>`) + glossBubble();
+}
+function viewNUpload(){
+  return `<div class="top"><button class="icon-btn" data-act="home">🏠</button><div class="top-title">새 뉴스 기사 올리기</div></div>
+  <div class="card center">
+    <div style="font-size:48px">📰</div>
+    <div style="font-size:22px;margin:6px 0 4px">뉴스 기사는 사진 인식 앱에서 읽어요</div>
+    <div class="muted" style="line-height:1.6">사진 인식 앱 → <b>📰 뉴스 기사 사진 올리기</b><br>① 기사 본문 사진 ② 기사 아래 단어 목록 사진을 올리고<br><b>📤 공부 앱으로 보내기</b>를 누르면 여기로 들어와요.</div>
+    <div class="row"><a class="btn big coral" href="${PHOTO_APP_URL}" target="_blank" rel="noopener" style="text-decoration:none">📷 사진 인식 앱 열기</a></div>
+    <div class="row"><button class="btn ghost" data-act="clip-import">📥 복사한 기사 가져오기</button></div>
+  </div>`;
 }
 
 function appUrl(){ return location.origin + location.pathname; }
@@ -1447,7 +1933,9 @@ function qrImg(text, cell){
   catch(e){ return ''; }
 }
 function buildAllLink(){
-  const multi = S.units.map(u => ({t:u.name, c:catNorm(u.cat), at:u.createdAt, w:u.words.map(w => [w.word, w.meaning, w.alts || ''])}));
+  const multi = S.units.map(u => isNews(u)
+    ? {k:'news', t:u.name, at:u.createdAt, x:u.text, g:u.gloss || [], n:u.names || []}
+    : {t:u.name, c:catNorm(u.cat), at:u.createdAt, w:u.words.map(w => [w.word, w.meaning, w.alts || ''])});
   return appUrl() + '#import=' + LZString.compressToEncodedURIComponent(JSON.stringify({multi}));
 }
 function viewShare(){
@@ -1512,18 +2000,59 @@ function render(){
     case 'done': html = viewDone(); break;
     case 'settings': html = viewSettings(); break;
     case 'share': html = viewShare(); break;
+    case 'nlisten': html = viewNListen(); break;
+    case 'nwords': html = viewNWords(); break;
+    case 'ntest': html = viewNTest(); break;
+    case 'nupload': html = viewNUpload(); break;
   }
   app.innerHTML = html;
   if (S.unit && ['listen','review','t1','t2','t3','done','miss'].includes(S.screen)) saveProgress();
+  if (S.unit && S.unit.news && /^n(listen|words|test)$/.test(S.screen)){ saveNews(); fitCtl(); }
+  if (S.gb) placeBubble();
 }
 
 /* ---------- events ---------- */
 app.addEventListener('click', async e => {
   const b = e.target.closest('[data-act]'); if (!b || !app.contains(b)) return;
   const act = b.dataset.act, i = b.dataset.i != null ? Number(b.dataset.i) : null, id = b.dataset.id;
+  if (S.gb && !/^n-(gsay|from|gclose|tap)$/.test(act)) S.gb = null;
   switch (act){
-    case 'home': stopAll(); stopListen(); S.listening = null; S.screen = 'home'; S.confirmDel = null; render(); window.scrollTo(0,0); break;
-    case 'new': newUpload(); break;
+    case 'home': stopAll(); stopListen(); S.listening = null; S.gb = null; S.screen = 'home'; S.confirmDel = null; render(); window.scrollTo(0,0); break;
+    case 'new': if (S.kind === 'news'){ stopAll(); S.screen = 'nupload'; render(); window.scrollTo(0, 0); } else newUpload(); break;
+    case 'kind': S.kind = b.dataset.k === 'news' ? 'news' : 'word'; LS.set('sw_kind', S.kind); S.confirmDel = null; render(); break;
+    /* ----- 뉴스 ----- */
+    case 'n-play': S.gb = null; runNews(); break;
+    case 'n-pause': stopAll(); render(); break;
+    case 'n-tap': {
+      if (!S.unit || !S.unit.news) break;
+      const N = S.unit.N, W = N.words[i]; if (!W) break;
+      if (S.screen === 'nlisten'){
+        stopAll();
+        if (W.g >= 0){ S.gb = {i, g:W.g}; render(); speak(N.gloss[W.g].term, 1); }
+        else { S.gb = null; S.nl.pos = i; S.nl.finished = false; runNews(); }
+      } else if (S.screen === 'ntest' && !S.listening){
+        if (S.nt.res[i] === 'bad') speak(W.t, 1);
+        else if (W.g >= 0){ S.gb = {i, g:W.g}; render(); speak(N.gloss[W.g].term, 1); }
+      }
+      break;
+    }
+    case 'n-gsay': if (S.gb) speak(S.unit.N.gloss[S.gb.g].term, 1); break;
+    case 'n-from': if (S.gb){ stopAll(); S.nl.pos = S.gb.i; S.nl.finished = false; S.gb = null; runNews(); } break;
+    case 'n-gclose': S.gb = null; render(); break;
+    case 'n-gword': speak(S.unit.N.gloss[i].term, 1); break;
+    case 'nt-mic': ntMic(); break;
+    case 'nt-again': { const T = S.nt, p = T.queue[T.qi]; stopAll(); S.unit.N.paras[p].w.forEach(gi => { if (T.res[gi] !== 'free') T.res[gi] = null; }); delete T.heard[p]; T.phase = 'read'; render(); scrollNow(); break; }
+    case 'nt-override': { const T = S.nt, p = T.queue[T.qi]; stopSpeech(); S.unit.N.paras[p].w.forEach(gi => { if (T.res[gi] === 'bad') T.res[gi] = 'ok'; }); beep(true); react(true); render(); break; }
+    case 'nt-saybad': { const T = S.nt; speakList(badPhrases([T.queue[T.qi]])); break; }
+    case 'nt-sayall': speakList(badPhrases(range(S.unit.N.paras.length))); break;
+    case 'nt-next': { const T = S.nt; stopSpeech(); T.qi++; if (T.qi >= T.queue.length) finishNT(); else { T.phase = 'read'; render(); scrollNow(); } break; }
+    case 'nt-retrybad': {
+      const T = S.nt, N = S.unit.N; stopSpeech();
+      T.queue = range(N.paras.length).filter(p => paraScore(p).bad);
+      T.queue.forEach(p => { N.paras[p].w.forEach(gi => { if (T.res[gi] === 'bad') T.res[gi] = null; }); delete T.heard[p]; });
+      T.qi = 0; T.phase = 'read'; T.score = null; render(); window.scrollTo(0, 0); setTimeout(scrollNow, 50); break;
+    }
+    case 'nt-reset': stopAll(); S.nt = null; initNT(); render(); window.scrollTo(0, 0); break;
     case 'open': { const u = S.units.find(x => x.id === id); if (u) startUnit(u); break; }
     case 'edit': { const u = S.units.find(x => x.id === id); if (u) newUpload(u); break; }
     case 'del': S.confirmDel = id; render(); break;
@@ -1532,7 +2061,7 @@ app.addEventListener('click', async e => {
     case 'speed': {
       const k = SPEEDS.findIndex(x => Math.abs(x[0] - S.rate) < 0.01);
       S.rate = SPEEDS[(k + 1) % SPEEDS.length][0]; LS.set('sw_rate', S.rate);
-      render(); if (S.screen !== 'listen' || !S.listen.playing) speak('Hello, Seohee!');
+      render(); if (!(S.screen === 'listen' && S.listen && S.listen.playing) && !(S.screen === 'nlisten' && S.nl && S.nl.playing) && !S.listening) speak('Hello, Seohee!');
       break;
     }
     case 'rm-img': URL.revokeObjectURL(S.up.urls[i]); S.up.files.splice(i, 1); S.up.urls.splice(i, 1); render(); break;
@@ -1678,12 +2207,26 @@ function handleImport(d){
   }
   saveImported(d);
 }
+function saveNewsImported(d, quiet){
+  const text = String(d.x || '').trim(); if (!text) throw 0;
+  const name = String(d.t || '').trim() || ('뉴스 ' + new Date().toLocaleDateString('ko-KR'));
+  const gloss = (Array.isArray(d.g) ? d.g : []).map(x => [String((x && x[0]) || '').trim(), String((x && x[1]) || '').trim()]).filter(x => x[0] && x[1]);
+  const names = (Array.isArray(d.n) ? d.n : []).map(x => String(x).trim()).filter(Boolean);
+  const same = S.units.find(u => isNews(u) && u.name === name);
+  const u = {id: same ? same.id : ('n' + Date.now().toString(36) + (impSeq++)), type:'news', name, text, gloss, names, createdAt: same ? same.createdAt : (Number(d.at) || Date.now())};
+  if (quiet){ persistUnit(u); return name; }
+  S.kind = 'news'; LS.set('sw_kind', 'news');
+  persistUnit(u).then(() => { stopAll(); S.screen = 'home'; S.confirmDel = null; render(); window.scrollTo(0, 0); toast('📰 ' + name + ' 저장됐어요!', 'good', 2200); });
+  return name;
+}
 function saveImported(d, quiet){
+    if (d && d.k === 'news') return saveNewsImported(d, quiet);
     const words = (d.w || []).map((x, i) => ({no:i + 1, word:String(x[0] || '').trim(), meaning:String(x[1] || '').trim(), alts:String(x[2] || '').trim(), okHeard:''}))
       .filter(x => x.word && x.meaning);
     if (!words.length) throw 0;
     const name = String(d.t || '').trim() || ('단원 ' + new Date().toLocaleDateString('ko-KR'));
-    const same = S.units.find(u => u.name === name && catNorm(u.cat) === catNorm(d.c));
+    const same = S.units.find(u => !isNews(u) && u.name === name && catNorm(u.cat) === catNorm(d.c));
+    if (!quiet && S.kind !== 'word'){ S.kind = 'word'; LS.set('sw_kind', 'word'); }
     if (same) words.forEach(w => { const o = same.words.find(x => x.word === w.word); if (o && o.okHeard) w.okHeard = o.okHeard; });
     const u = {id: same ? same.id : ('u' + Date.now().toString(36) + (impSeq++)), name, cat: catNorm(d.c), words, createdAt: same ? same.createdAt : (Number(d.at) || Date.now())};
     if (quiet){ persistUnit(u); return name; }
