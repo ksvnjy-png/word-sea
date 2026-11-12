@@ -816,6 +816,35 @@ const REPEAT = 2;
 let listenRun = 0;
 function stopAll(){ listenRun++; stopSpeech(); if (S.listen) S.listen.playing = false; if (S.nl) S.nl.playing = false; if (S.listening){ stopListen(); S.listening = null; } }
 
+/* ---------- 🙋 기억한 정답 (앱 전체 공용 메모장) ----------
+ * "제대로 읽었어요"를 누르면 [단어, 그때 들린 말] 짝을 기억해 둔다.
+ * 단원·기사를 지워도 남고, 단어 테스트 1과 뉴스 읽기 테스트가 함께 쓴다.
+ * 기기 안(localStorage 'sw_heard')에만 저장. 최근 MEM_MAX개까지만 보관. */
+const MEM_MAX = 2000;
+let memCache = null;
+function memList(){ const v = LS.get('sw_heard', []); return Array.isArray(v) ? v.filter(x => Array.isArray(x) && x[0] && x[1]) : []; }
+function memMap(){
+  if (memCache) return memCache;
+  memCache = new Map();
+  memList().forEach(([w, h]) => { if (!memCache.has(w)) memCache.set(w, new Set()); memCache.get(w).add(h); });
+  return memCache;
+}
+function memAdd(word, heard){
+  const w = normEn(word), h = normEn(heard);
+  if (!w || !h || w === h) return;
+  const list = memList().filter(x => !(x[0] === w && x[1] === h));
+  list.push([w, h, Date.now()]);
+  LS.set('sw_heard', list.slice(-MEM_MAX)); memCache = null;
+}
+function memDel(w, h){ LS.set('sw_heard', memList().filter(x => !(x[0] === w && x[1] === h))); memCache = null; }
+function memHas(word, heard){ const s = memMap().get(normEn(word)); return !!s && s.has(normEn(heard)); }
+// 예전 단원 안에 저장돼 있던 🙋 기억(okHeard)을 공용 메모장으로 한 번 옮김
+function memMigrate(list){
+  if (LS.get('sw_memv', 0) >= 1) return;
+  (list || []).forEach(u => (u && Array.isArray(u.words) ? u.words : []).forEach(w => String(w.okHeard || '').split(',').forEach(h => memAdd(w.word, h))));
+  LS.set('sw_memv', 1);
+}
+
 /* ---------- storage ---------- */
 function loadUnits(){
   let list = LS.get('sw_units', null);
@@ -833,6 +862,7 @@ function loadUnits(){
     }
     LS.set('sw_seedv', 2);
   }
+  memMigrate(list);
   S.units = list.filter(u => u && (isNews(u) ? String(u.text || '').trim() : (Array.isArray(u.words) && u.words.length))).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   S.unitsLoading = false; render();
 }
@@ -1036,8 +1066,7 @@ async function t1Mic(){
     render(); toast('잘 안 들렸어요 🙉 "지금 말해요!"가 보이면 읽어 봐요', '', 2400); return;
   }
   T.heard = alts[0]; T.empty = 0;
-  const learned = String(w.okHeard || '').split(',').map(x => normEn(x)).filter(Boolean);
-  t1Answer(matchEn(w.word, alts) || alts.some(a => learned.includes(normEn(a))));
+  t1Answer(matchEn(w.word, alts) || alts.some(a => memHas(w.word, a)));
 }
 function learn(idx, field, text){
   text = String(text || '').trim(); if (!text) return;
@@ -1055,6 +1084,7 @@ function t1Override(){
   const T = S.t1, idx = T.queue[T.pos];
   undoMiss('t1', idx);
   learn(idx, 'okHeard', T.heard);
+  if (T.heard) memAdd(S.unit.words[idx].word, T.heard);
   const k = T.wrong.lastIndexOf(idx); if (k >= 0) T.wrong.splice(k, 1);
   if (T.round === 1) S.stats.t1 = Math.max(0, S.stats.t1 - 1);
   else { const j = T.stillWrong.lastIndexOf(idx); if (j >= 0) T.stillWrong.splice(j, 1); }
@@ -1079,8 +1109,7 @@ async function t1Retry(){
   S.listening = null;
   if (S.screen !== 't1' || S.t1 !== T || T.phase !== 'wrongShow') return;
   if (!alts.length){ render(); toast('잘 안 들렸어요. 다시 해 보거나 "다음"을 눌러요', '', 2000); return; }
-  const learned = String(w.okHeard || '').split(',').map(x => normEn(x)).filter(Boolean);
-  if (matchEn(w.word, alts) || alts.some(a => learned.includes(normEn(a)))){
+  if (matchEn(w.word, alts) || alts.some(a => memHas(w.word, a))){
     const k = T.wrong.lastIndexOf(idx); if (k >= 0) T.wrong.splice(k, 1);
     if (T.round !== 1){ const j = T.stillWrong.lastIndexOf(idx); if (j >= 0) T.stillWrong.splice(j, 1); }
     beep(true); react(true); T.heard = null; t1Next(); return;
@@ -1219,7 +1248,7 @@ function viewHome(){
           ${unitStatus(u)}
           <div class="muted">${isNews(u) ? `${newsWordCount(u)}단어 · 뜻 단어 ${(u.gloss || []).length}개` : `${u.words.length}개 단어`}${u.createdAt ? ' · ' + fmtDate(u.createdAt) : ''}</div>
         </button>
-        ${isNews(u) ? '' : `<button class="icon-btn" data-act="edit" data-id="${esc(u.id)}" aria-label="고치기">✏️</button>`}
+        <button class="icon-btn" data-act="edit" data-id="${esc(u.id)}" aria-label="고치기">✏️</button>
         <button class="icon-btn" data-act="del" data-id="${esc(u.id)}" aria-label="지우기">🗑</button>
       </div>
       ${S.confirmDel === u.id ? `<div class="confirm" style="padding:0 18px 16px">정말 지울까요?
@@ -1712,7 +1741,7 @@ const homo = x => HOMO[x] || x;
 function nwMatch(pw, h){
   const a = homo(normEn(pw)), b = homo(normEn(h));
   if (!a || !b) return false;
-  if (a === b) return true;
+  if (a === b || memHas(pw, h)) return true;
   if (a.length >= 4 && lev(a, b) <= (a.length >= 7 ? 2 : 1)) return true;
   const sa = sound(a), sb = sound(b);
   if (sa.length >= 2 && sa === sb) return true;
@@ -1739,7 +1768,7 @@ function alignRead(P, H){
     }
     if (j < m) up(i, j + 1, c + 0.6, 4);
   }
-  const ok = new Array(n).fill(false);
+  const ok = new Array(n).fill(false), heardAs = new Array(n).fill(null);
   let i = n, j = m;
   while (i > 0 || j > 0){
     const k = bk[i][j];
@@ -1747,9 +1776,10 @@ function alignRead(P, H){
     else if (k === 2){ i--; j--; ok[i] = true; }
     else if (k === 3){ i--; j -= 2; ok[i] = true; }
     else if (k === 4) j--;
-    else if (k === 5){ i--; j--; }
+    else if (k === 5){ i--; j--; heardAs[i] = H[j]; }   // 다른 말로 들린 단어: 🙋 누르면 기억할 짝
     else break;
   }
+  ok.heardAs = heardAs;
   return ok;
 }
 function initNT(){
@@ -1767,7 +1797,11 @@ function gradePara(p, txt){
     const prev = scored[j - 1], next = scored[j + 1];
     if ((prev != null && base[prev]) || (next != null && base[next])) ok[k] = true;
   });
-  ids.forEach((gi, k) => { T.res[gi] = N.words[gi].free ? 'free' : ok[k] ? 'ok' : 'bad'; });
+  T.hmap = T.hmap || {};
+  ids.forEach((gi, k) => {
+    T.res[gi] = N.words[gi].free ? 'free' : ok[k] ? 'ok' : 'bad';
+    if (T.res[gi] === 'bad' && ok.heardAs[k]) T.hmap[gi] = ok.heardAs[k]; else delete T.hmap[gi];
+  });
 }
 function paraScore(p){
   const T = S.nt; let ok = 0, bad = 0;
@@ -1938,6 +1972,31 @@ function viewNTest(){
   const art = articleHTML({cls, pcls: q => q === p ? 'now' : 'dim'});
   return nshell(title + prog +`<div class="split"><div class="split-a ntctl tt">${ctl}${legend}</div><div class="split-b nart"><div class="leg-top">${legend}</div>${art}</div></div>`) + glossBubble();
 }
+function viewNEdit(){
+  const ne = S.ne;
+  const words = (String(ne.text).match(NEWS_TOKEN) || []).length;
+  const paras = String(ne.text).split(/\n\s*\n/).filter(s => s.trim()).length;
+  return `<div class="top"><button class="icon-btn" data-act="home">🏠</button><div class="top-title">뉴스 기사 고치기</div></div>
+  <div class="card">
+    <label class="field" for="neTitle">기사 제목</label>
+    <input class="inp en" id="neTitle" value="${esc(ne.title)}" placeholder="예: Big Storm Hits Florida">
+    <label class="field" for="neText" style="margin-top:14px">기사 본문 <span class="count" style="font-size:14px">${paras}문단 · ${words}단어</span></label>
+    <div class="muted" style="font-size:14px;margin-bottom:6px">틀린 글자를 고쳐 주세요. 문단 사이는 빈 줄로 나눠요.</div>
+    <textarea class="inp en" id="neText" rows="14" style="font-size:16px;line-height:1.5">${esc(ne.text)}</textarea>
+    <label class="field" for="neNames" style="margin-top:14px">이름·지명 (읽기 테스트에서 무조건 정답, 쉼표로 구분)</label>
+    <input class="inp en" id="neNames" value="${esc(ne.names)}" placeholder="예: Milton, Florida">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:20px 0 6px">
+      <span class="count">뜻 단어 ${ne.gloss.length}개</span><span class="muted" style="font-size:14px">기사에서 밑줄로 보여요</span></div>
+    <div>${ne.gloss.map((g, k) => `<div class="erow">
+      <span class="no">${k + 1}</span>
+      <input class="inp en" data-gi="${k}" data-gf="0" value="${esc(g[0])}" placeholder="영어 단어" autocapitalize="off" autocomplete="off" spellcheck="false">
+      <input class="inp" data-gi="${k}" data-gf="1" value="${esc(g[1])}" placeholder="한글 뜻">
+      <button class="x" data-act="ne-grm" data-i="${k}" aria-label="지우기">✕</button></div>`).join('')}</div>
+    <div class="row" style="justify-content:flex-start"><button class="btn small ghost" data-act="ne-gadd" style="flex:none">+ 단어 추가</button></div>
+    <div class="muted" style="font-size:13px;margin-top:10px">본문 단어 수가 바뀌면 이 기사의 읽기 테스트 기록은 처음부터 다시 시작해요.</div>
+    <div class="stackbtns"><button class="btn big coral" data-act="ne-save">💾 저장하기</button></div>
+  </div>`;
+}
 function viewNUpload(){
   return `<div class="top"><button class="icon-btn" data-act="home">🏠</button><div class="top-title">새 뉴스 기사 올리기</div></div>
   <div class="card center">
@@ -2006,6 +2065,22 @@ function viewSettings(){
       <button class="btn small" data-act="mic-test" data-lang="ko-KR" ${SR ? '' : 'disabled'}>${S.listening === 'test' ? '⏹ 멈추기' : '한국어로 말하기'}</button>
     </div>
     ${S.micTest ? `<div class="heard" style="text-align:left">${esc(S.micTest)}</div>` : ''}
+  </div>
+  ${viewMemory()}`;
+}
+function viewMemory(){
+  const list = memList().slice().reverse(), shown = list.slice(0, S.memAll ? list.length : 30);
+  return `<div class="card mt">
+    <div class="field">🙋 기억한 정답 <span class="count" style="font-size:14px">${list.length}개</span></div>
+    <div class="muted" style="font-size:14px;line-height:1.5">"제대로 읽었어요"를 누르면 그때 들린 말을 기억해요.<br>다음부터는 그렇게 들려도 정답이에요. 단원·기사를 지워도 남아요.</div>
+    ${list.length ? `<div class="mt" style="display:grid;gap:6px">${shown.map(([w, h]) => `<div class="mrow" style="background:#f3f0ff;cursor:default;grid-template-columns:1fr auto">
+        <span class="en" style="font-size:17px">${esc(w)} <span class="muted" style="font-size:14px">← “${esc(h)}”로 들려도 정답</span></span>
+        <button class="btn small ghost" data-act="mem-del" data-w="${esc(w)}" data-h="${esc(h)}" style="padding:6px 10px" aria-label="지우기">✕</button></div>`).join('')}</div>
+      ${list.length > shown.length ? `<div class="row"><button class="btn small ghost" data-act="mem-more" style="flex:none">전부 보기 (${list.length}개)</button></div>` : ''}
+      <div class="row">${S.memConfirm
+        ? `<span class="muted" style="align-self:center">정말 모두 지울까요?</span><button class="btn small bad" data-act="mem-clear-yes" style="flex:none">모두 지우기</button><button class="btn small ghost" data-act="mem-clear-no" style="flex:none">취소</button>`
+        : `<button class="btn small ghost" data-act="mem-clear" style="flex:none">🗑 기억 모두 지우기</button>`}</div>`
+      : `<div class="muted mt" style="font-size:14px">아직 기억한 정답이 없어요.</div>`}
   </div>`;
 }
 function render(){
@@ -2026,6 +2101,7 @@ function render(){
     case 'nwords': html = viewNWords(); break;
     case 'ntest': html = viewNTest(); break;
     case 'nupload': html = viewNUpload(); break;
+    case 'nedit': html = viewNEdit(); break;
   }
   app.innerHTML = html;
   if (S.unit && ['listen','review','t1','t2','t3','done','miss'].includes(S.screen)) saveProgress();
@@ -2041,7 +2117,12 @@ app.addEventListener('click', async e => {
   switch (act){
     case 'home': stopAll(); stopListen(); S.listening = null; S.gb = null; S.screen = 'home'; S.confirmDel = null; render(); window.scrollTo(0,0); break;
     case 'new': if (S.kind === 'news'){ stopAll(); S.screen = 'nupload'; render(); window.scrollTo(0, 0); } else newUpload(); break;
-    case 'kind': S.kind = b.dataset.k === 'news' ? 'news' : 'word'; LS.set('sw_kind', S.kind); S.confirmDel = null; render(); break;
+    case 'mem-del': memDel(b.dataset.w, b.dataset.h); render(); break;
+    case 'mem-more': S.memAll = true; render(); break;
+    case 'mem-clear': S.memConfirm = true; render(); break;
+    case 'mem-clear-no': S.memConfirm = false; render(); break;
+    case 'mem-clear-yes': LS.set('sw_heard', []); memCache = null; S.memConfirm = false; toast('기억을 모두 지웠어요', 'good', 1400); render(); break;
+    case 'kind': S.kind =b.dataset.k === 'news' ? 'news' : 'word'; LS.set('sw_kind', S.kind); S.confirmDel = null; render(); break;
     /* ----- 뉴스 ----- */
     case 'n-play': S.gb = null; runNews(); break;
     case 'n-pause': stopAll(); render(); break;
@@ -2064,7 +2145,15 @@ app.addEventListener('click', async e => {
     case 'n-gword': speak(S.unit.N.gloss[i].term, 1); break;
     case 'nt-mic': ntMic(); break;
     case 'nt-again': { const T = S.nt, p = T.queue[T.qi]; stopAll(); S.unit.N.paras[p].w.forEach(gi => { if (T.res[gi] !== 'free') T.res[gi] = null; }); delete T.heard[p]; T.phase = 'read'; render(); scrollNow(); break; }
-    case 'nt-override': { const T = S.nt, p = T.queue[T.qi]; stopSpeech(); S.unit.N.paras[p].w.forEach(gi => { if (T.res[gi] === 'bad') T.res[gi] = 'ok'; }); beep(true); react(true); render(); break; }
+    case 'nt-override': {
+      const T = S.nt, p = T.queue[T.qi], N = S.unit.N; stopSpeech();
+      N.paras[p].w.forEach(gi => {
+        if (T.res[gi] !== 'bad') return;
+        T.res[gi] = 'ok';
+        if (T.hmap && T.hmap[gi]){ memAdd(N.words[gi].t, T.hmap[gi]); delete T.hmap[gi]; }   // 다음부터는 이렇게 들려도 정답
+      });
+      beep(true); react(true); render(); break;
+    }
     case 'nt-saybad': { const T = S.nt; speakList(badPhrases([T.queue[T.qi]])); break; }
     case 'nt-sayall': speakList(badPhrases(range(S.unit.N.paras.length))); break;
     case 'nt-next': { const T = S.nt; stopSpeech(); T.qi++; if (T.qi >= T.queue.length) finishNT(); else { T.phase = 'read'; render(); scrollNow(); } break; }
@@ -2077,7 +2166,27 @@ app.addEventListener('click', async e => {
     }
     case 'nt-reset': stopAll(); keepPassed(); S.nt = null; initNT(); render(); window.scrollTo(0, 0); break;
     case 'open': { const u = S.units.find(x => x.id === id); if (u) startUnit(u); break; }
-    case 'edit': { const u = S.units.find(x => x.id === id); if (u) newUpload(u); break; }
+    case 'edit': {
+      const u = S.units.find(x => x.id === id); if (!u) break;
+      if (isNews(u)){
+        stopAll();
+        S.ne = {id:u.id, createdAt:u.createdAt, title:u.name, text:u.text, names:(u.names || []).join(', '), gloss:(u.gloss || []).map(g => [g[0], g[1]])};
+        S.screen = 'nedit'; render(); window.scrollTo(0, 0);
+      } else newUpload(u);
+      break;
+    }
+    case 'ne-gadd': S.ne.gloss.push(['', '']); render(); { const ins = app.querySelectorAll('input[data-gf="0"]'); const last = ins[ins.length - 1]; if (last) last.focus(); } break;
+    case 'ne-grm': S.ne.gloss.splice(i, 1); render(); break;
+    case 'ne-save': {
+      const ne = S.ne, text = String(ne.text || '').replace(/\r/g, '').trim();
+      if (!text){ toast('기사 글을 넣어 주세요', 'bad', 1400); break; }
+      const gloss = ne.gloss.map(g => [String(g[0] || '').trim(), String(g[1] || '').trim()]);
+      if (gloss.some(g => (g[0] && !g[1]) || (!g[0] && g[1]))){ toast('단어나 뜻이 빈 줄이 있어요', 'bad', 1500); break; }
+      const name = String(ne.title || '').trim() || ('뉴스 ' + new Date().toLocaleDateString('ko-KR'));
+      const u = {id:ne.id, type:'news', name, text, gloss:gloss.filter(g => g[0]), names:String(ne.names || '').split(/[,，]/).map(s => s.trim()).filter(Boolean), createdAt:ne.createdAt};
+      b.disabled = true; await persistUnit(u); S.ne = null;
+      S.screen = 'home'; render(); window.scrollTo(0, 0); toast('고쳤어요! ✏️', 'good', 1400); break;
+    }
     case 'del': S.confirmDel = id; render(); break;
     case 'del-no': S.confirmDel = null; render(); break;
     case 'del-yes': S.confirmDel = null; await removeUnit(id); render(); break;
@@ -2196,6 +2305,13 @@ app.addEventListener('click', async e => {
 });
 app.addEventListener('input', e => {
   const t = e.target;
+  if (S.screen === 'nedit' && S.ne){
+    if (t.dataset && t.dataset.gf != null){ const g = S.ne.gloss[Number(t.dataset.gi)]; if (g) g[Number(t.dataset.gf)] = t.value; }
+    else if (t.id === 'neTitle') S.ne.title = t.value;
+    else if (t.id === 'neText') S.ne.text = t.value;
+    else if (t.id === 'neNames') S.ne.names = t.value;
+    return;
+  }
   if (!S.up) return;
   if (t.dataset && t.dataset.f){ const w = S.up.words[Number(t.dataset.i)]; if (w) w[t.dataset.f] = t.value; }
   else if (t.id === 'unitName') S.up.title = t.value;
