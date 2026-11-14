@@ -788,7 +788,27 @@ function loadVoices(){
 if (hasTTS){ loadVoices(); try { speechSynthesis.addEventListener('voiceschanged', loadVoices); } catch(e){} }
 let speechToken = 0;
 function stopSpeech(){ speechToken++; if (hasTTS) try { speechSynthesis.cancel(); } catch(e){} }
+/* 연도는 영어식으로: 1840 → eighteen forty, 1905 → nineteen oh five, 2008 → two thousand eight, 1990s → nineteen nineties */
+const N_ONES = ['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+const N_TENS = ['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+const two = n => n < 20 ? N_ONES[n] : N_TENS[Math.floor(n / 10)] + (n % 10 ? '-' + N_ONES[n % 10] : '');
+function yearWords(y){
+  if (y % 1000 === 0) return two(y / 1000) + ' thousand';
+  if (y > 2000 && y < 2010) return 'two thousand ' + N_ONES[y - 2000];
+  const hi = Math.floor(y / 100), lo = y % 100;
+  if (lo === 0) return two(hi) + ' hundred';
+  return two(hi) + ' ' + (lo < 10 ? 'oh ' + N_ONES[lo] : two(lo));
+}
+const plural = w => /y$/.test(w) ? w.slice(0, -1) + 'ies' : w + 's';
+function sayYears(text){
+  // 1100~2099의 네 자리 숫자만 연도로 봄 (1,840 · $1840 · 18.40 같은 건 그대로)
+  return String(text).replace(/(^|[^\d,.$£€])(1[1-9]\d\d|20\d\d)(s|'s|’s)?(?![\d])(?![.,]\d)/g, (m, pre, num, s) => {
+    const w = yearWords(Number(num));
+    return pre + (s ? w.replace(/(\S+)$/, x => plural(x)) : w);
+  });
+}
 function speakOnce(text){
+  text = sayYears(text);
   return new Promise(res => {
     if (!hasTTS){ res(); return; }
     let done = false, t;
