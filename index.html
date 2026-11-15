@@ -1053,7 +1053,7 @@ async function runListen(opt){
   if (L.finished){ L.i = 0; L.k = 0; L.said = 0; L.finished = false; }
   L.playing = true; L.wait = false; render(); scrollCur();
   await sleep(80);
-  let remind = L.k >= REPEAT;
+  let remind = L.k >= REPEAT && !(opt && opt.noRemind);
   while (L.i < W.length){
     if (L.k === 0){ L.said = 0; L.heard = null; }
     for (let k = L.k; k < REPEAT; k++){
@@ -1077,7 +1077,7 @@ async function runListen(opt){
         if (my !== listenRun) return;
         S.listening = null;
         if (!heard){
-          if (++empty >= 2){ L.playing = false; L.wait = true; render(); toast('따라 읽을 준비가 되면 ▶ 를 눌러요', '', 2600); return; }
+          if (++empty >= 2){ L.playing = false; L.wait = true; render(); toast('준비되면 🎤 다시 말하기를 눌러요', '', 2600); return; }
           render(); toast('잘 안 들렸어요 🙉 "지금 말해요!"가 보이면 두 번 읽어요', '', 2000); continue;
         }
         L.said = REPEAT; beep(true); render(); await sleep(350);
@@ -1408,7 +1408,7 @@ function viewListen(){
   const sayPhase = SR && started && !L.finished && L.k >= REPEAT;
   const li = S.listening === 'l', said = L.said || 0;
   const sayLine = !SR ? '' : `<div class="dots" aria-label="따라 읽기">🗣 ${range(REPEAT).map(k => `<span class="dot say ${k < said || L.finished ? 'on' : ''}"></span>`).join('')}</div>`;
-  const sayBox = !sayPhase ? '' : `<div class="label ${li && S.micLive ? 'live' : ''}" style="margin-top:8px">${li ? (S.micLive ? `지금 ${REPEAT}번 따라 읽어요! 🎙` : '마이크 준비 중…') : L.playing ? (said >= REPEAT ? '잘했어요! 👍' : '따라 읽기') : `▶ 를 누르고 ${REPEAT}번 따라 읽어요`}</div>`;
+  const sayBox = !sayPhase ? '' : `<div class="label ${li && S.micLive ? 'live' : ''}" style="margin-top:8px">${li ? (S.micLive ? `지금 ${REPEAT}번 따라 읽어요! 🎙` : '마이크 준비 중…') : L.playing ? (said >= REPEAT ? '잘했어요! 👍' : '따라 읽기') : `🎤 를 누르고 ${REPEAT}번 따라 읽어요`}</div>`;
   const card = `<div class="card center">
     <div class="label">${L.finished ? '다 들었어요! 👏' : started ? `${L.i + 1} / ${N}` : `${N}개 단어 · ${SR ? `${REPEAT}번 듣고 ${REPEAT}번 따라 읽기` : `단어마다 ${REPEAT}번씩`}`}</div>
     <div class="bigword en">${started ? esc(cur.word) : '🎧'}</div>
@@ -1417,6 +1417,8 @@ function viewListen(){
     ${sayLine}${sayBox}
     <div class="row">${L.playing
       ? `<button class="btn big ghost" data-act="l-pause">⏸ 잠깐 멈춤</button>`
+      : sayPhase
+      ? `<button class="btn big mic" data-act="l-say">🎤 다시 말하기</button>`
       : `<button class="btn big" data-act="l-play">${L.finished ? '🔁 처음부터 다시' : (started ? '▶ 이어 듣기' : '▶ 듣기 시작')}</button>`}
       ${started && !L.finished ? `<button class="btn big coral" data-act="l-skip">⏭ 넘어가기</button>` : ''}</div>
   </div>`;
@@ -1425,7 +1427,7 @@ function viewListen(){
     return `<button class="li ${isCur ? 'cur' : ''} ${started && (i < L.i || L.finished) ? 'past' : ''}" data-act="l-jump" data-i="${i}" ${isCur ? 'id="curLi"' : ''}>
       <span class="no">${w.no}</span><span class="en w">${esc(w.word)}</span><span class="m">${esc(w.meaning)}</span></button>`;
   }).join('')}</div>`;
-  return shell(`<div class="split"><div class="split-a">${card}<button class="btn big full next" data-act="go" data-to="review">다음: 모르는 단어 다시 듣기 →</button></div><div class="split-b">${list}</div></div>`);
+  return shell(`<div class="split"><div class="split-a">${card}</div><div class="split-b">${list}</div></div>`);
 }
 
 function viewReview(){
@@ -1433,8 +1435,7 @@ function viewReview(){
   return shell(`<div class="hint">잘 모르겠는 단어를 누르면 다시 읽어 줘요 🔊</div>
     <div class="grid">${W.map((w, i) => `<button class="wcard" data-act="r-say" data-i="${i}">
       <span class="no">${w.no}</span>${S.rc[i] ? `<span class="badge">🔊${S.rc[i]}</span>` : ''}
-      <span class="en w">${esc(w.word)}</span><span class="m">${esc(w.meaning)}</span></button>`).join('')}</div>
-    <button class="btn big coral full next" data-act="go" data-to="t1">테스트 시작하기 →</button>`);
+      <span class="en w">${esc(w.word)}</span><span class="m">${esc(w.meaning)}</span></button>`).join('')}</div>`);
 }
 
 function progress(done, total, left, right){
@@ -2305,6 +2306,7 @@ app.addEventListener('click', async e => {
       go(to); break;
     }
     case 'l-play': runListen(); break;
+    case 'l-say': runListen({noRemind:true}); break;
     case 'l-pause': stopAll(); render(); break;
     case 'l-skip': {
       const L = S.listen; stopAll();
