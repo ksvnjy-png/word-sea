@@ -113,6 +113,7 @@ h2.sec{font-size:22px;margin:28px 4px 10px;font-weight:400}
 .dots{display:flex;gap:10px;justify-content:center;margin:14px 0 2px}
 .dot{width:16px;height:16px;border-radius:50%;background:var(--line);transition:background .2s}
 .dot.on{background:var(--coral)}
+.dot.say.on{background:#3aa76d}
 .progress{height:12px;border-radius:999px;background:#fff;overflow:hidden;box-shadow:inset 0 0 0 2px var(--line);margin:4px 0 14px}
 .progress>i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),#2bb5be);border-radius:999px;transition:width .3s}
 .ptext{display:flex;justify-content:space-between;color:var(--sub);font-size:16px;margin:0 2px 6px}
@@ -1046,23 +1047,48 @@ function newUpload(edit){
 }
 
 /* ---------- listen ---------- */
-async function runListen(){
+// 듣기: 단어마다 REPEAT번 읽어 주고 → 서희가 REPEAT번 따라 읽어야 다음 단어로 (마이크 없으면 듣기만)
+async function runListen(opt){
   const my = ++listenRun; const L = S.listen, W = S.unit.words;
-  if (L.finished){ L.i = 0; L.k = 0; L.finished = false; }
-  L.playing = true; render(); scrollCur();
+  if (L.finished){ L.i = 0; L.k = 0; L.said = 0; L.finished = false; }
+  L.playing = true; L.wait = false; render(); scrollCur();
   await sleep(80);
+  let remind = L.k >= REPEAT;
   while (L.i < W.length){
+    if (L.k === 0){ L.said = 0; L.heard = null; }
     for (let k = L.k; k < REPEAT; k++){
       if (my !== listenRun) return;
       L.k = k; render(); if (k === 0) scrollCur();
       await speakOnce(W[L.i].word);
       if (my !== listenRun) return;
-      await sleep(k < REPEAT - 1 ? 1000 : 1500);
+      await sleep(k < REPEAT - 1 ? 1000 : (SR ? 500 : 1500));
     }
     if (my !== listenRun) return;
-    L.k = 0; L.i++;
+    L.k = REPEAT;
+    if (SR){
+      let empty = 0;
+      while ((L.said || 0) < REPEAT){
+        if (remind){ remind = false; render(); await speakOnce(W[L.i].word); if (my !== listenRun) return; await sleep(300); }
+        S.listening = 'l'; render();
+        let alts;
+        try { alts = await listen('en-US'); }
+        catch(e){ if (my !== listenRun) return; S.listening = null; L.playing = false; L.wait = true; render(); toast(micErr(e), 'bad', 2600); return; }
+        if (my !== listenRun) return;
+        S.listening = null;
+        if (!alts.length){
+          if (++empty >= 2){ L.playing = false; L.wait = true; render(); toast('따라 읽을 준비가 되면 ▶ 를 눌러요', '', 2600); return; }
+          render(); toast('잘 안 들렸어요 🙉 "지금 말해요!"가 보이면 따라 읽어요', '', 2000); continue;
+        }
+        // 채점 안 함: 무슨 말이든 들리면 1번 읽은 것으로
+        empty = 0; L.said = (L.said || 0) + 1; beep(true); render(); await sleep(500);
+        if (my !== listenRun) return;
+      }
+      await sleep(400);
+      if (my !== listenRun) return;
+    }
+    L.k = 0; L.said = 0; L.heard = null; L.i++;
   }
-  L.i = W.length - 1; L.playing = false; L.finished = true; S.done.listen = true;
+  L.i = W.length - 1; L.k = 0; L.playing = false; L.finished = true; S.done.listen = true;
   beep(true); render();
 }
 function scrollCur(){ const el = document.getElementById('curLi'); if (el && el.scrollIntoView) try { el.scrollIntoView({block:'nearest', behavior:'smooth'}); } catch(e){} }
@@ -1381,11 +1407,16 @@ function viewListen(){
   const W = S.unit.words, L = S.listen, N = W.length;
   const started = L.playing || L.i > 0 || L.k > 0 || L.finished;
   const cur = W[Math.min(L.i, N - 1)];
+  const sayPhase = SR && started && !L.finished && L.k >= REPEAT;
+  const li = S.listening === 'l', said = L.said || 0;
+  const sayLine = !SR ? '' : `<div class="dots" aria-label="따라 읽기">🗣 ${range(REPEAT).map(k => `<span class="dot say ${k < said || L.finished ? 'on' : ''}"></span>`).join('')}</div>`;
+  const sayBox = !sayPhase ? '' : `<div class="label ${li && S.micLive ? 'live' : ''}" style="margin-top:8px">${li ? (S.micLive ? `지금 따라 읽어요! 🎙 (${said + 1}/${REPEAT})` : '마이크 준비 중…') : L.playing ? `따라 읽기 ${said}/${REPEAT}` : `▶ 를 누르고 따라 읽어요 (${said}/${REPEAT})`}</div>`;
   const card = `<div class="card center">
-    <div class="label">${L.finished ? '다 들었어요! 👏' : started ? `${L.i + 1} / ${N}` : `${N}개 단어 · 단어마다 ${REPEAT}번씩`}</div>
+    <div class="label">${L.finished ? '다 들었어요! 👏' : started ? `${L.i + 1} / ${N}` : `${N}개 단어 · ${SR ? `${REPEAT}번 듣고 ${REPEAT}번 따라 읽기` : `단어마다 ${REPEAT}번씩`}`}</div>
     <div class="bigword en">${started ? esc(cur.word) : '🎧'}</div>
-    <div class="meaning">${started ? esc(cur.meaning) : '잘 듣고 따라 말해 봐요'}</div>
-    <div class="dots">${range(REPEAT).map(k => `<span class="dot ${(L.playing && k <= L.k) || L.finished ? 'on' : ''}"></span>`).join('')}</div>
+    <div class="meaning">${started ? esc(cur.meaning) : (SR ? '잘 듣고 두 번 따라 읽어요' : '잘 듣고 따라 말해 봐요')}</div>
+    <div class="dots" aria-label="듣기">🔊 ${range(REPEAT).map(k => `<span class="dot ${(L.playing && k <= L.k) || L.k >= REPEAT || L.finished ? 'on' : ''}"></span>`).join('')}</div>
+    ${sayLine}${sayBox}
     <div class="row">${L.playing
       ? `<button class="btn big ghost" data-act="l-pause">⏸ 잠깐 멈춤</button>`
       : `<button class="btn big" data-act="l-play">${L.finished ? '🔁 처음부터 다시' : (started ? '▶ 이어 듣기' : '▶ 듣기 시작')}</button>`}
