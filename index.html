@@ -114,6 +114,9 @@ h2.sec{font-size:22px;margin:28px 4px 10px;font-weight:400}
 .dot{width:16px;height:16px;border-radius:50%;background:var(--line);transition:background .2s}
 .dot.on{background:var(--coral)}
 .dot.say.on{background:#3aa76d}
+.vlist{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;margin-top:8px}
+.vbtn{text-align:left;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:#fff;font:inherit;font-size:15px;cursor:pointer;color:inherit}
+.vbtn.on{border-color:#3aa76d;background:#eefaf3;font-weight:700}
 .progress{height:12px;border-radius:999px;background:#fff;overflow:hidden;box-shadow:inset 0 0 0 2px var(--line);margin:4px 0 14px}
 .progress>i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),#2bb5be);border-radius:999px;transition:width .3s}
 .ptext{display:flex;justify-content:space-between;color:var(--sub);font-size:16px;margin:0 2px 6px}
@@ -779,12 +782,23 @@ function toast(msg, kind, ms){
 
 /* ---------- speech ---------- */
 const hasTTS = 'speechSynthesis' in window;
-let voice = null;
+let voice = null, enVoices = [];
+const voiceId = v => v ? (v.voiceURI || v.name) + '|' + v.lang : '';
 function loadVoices(){
   if (!hasTTS) return;
-  const vs = speechSynthesis.getVoices();
-  const us = vs.filter(v => /^en[-_]US/i.test(v.lang));
-  voice = us.find(v => /Samantha|Google US English|Aria|Jenny|Allison|Ava/i.test(v.name)) || us[0] || vs.find(v => /^en/i.test(v.lang)) || null;
+  let vs = []; try { vs = speechSynthesis.getVoices() || []; } catch(e){}
+  // 영어 목소리만, 미국 → 영국 → 그 밖 순서
+  const rank = v => /^en[-_]US/i.test(v.lang) ? 0 : /^en[-_]GB/i.test(v.lang) ? 1 : 2;
+  enVoices = vs.filter(v => /^en/i.test(v.lang)).sort((a, b) => rank(a) - rank(b));
+  const us = enVoices.filter(v => rank(v) === 0);
+  const auto = us.find(v => /Samantha|Google US English|Aria|Jenny|Allison|Ava/i.test(v.name)) || us[0] || enVoices[0] || null;
+  const want = LS.get('sw_voice', '');
+  voice = (want && enVoices.find(v => voiceId(v) === want)) || auto;
+  if (S && S.screen === 'settings') render();
+}
+function voiceLabel(v){
+  const flag = /^en[-_]US/i.test(v.lang) ? '🇺🇸 미국식' : /^en[-_]GB/i.test(v.lang) ? '🇬🇧 영국식' : /^en[-_]AU/i.test(v.lang) ? '🇦🇺 호주식' : /^en[-_]IN/i.test(v.lang) ? '🇮🇳 인도식' : '🌐 ' + v.lang;
+  return flag + ' · ' + v.name + (v.localService === false ? ' (인터넷)' : '');
 }
 if (hasTTS){ loadVoices(); try { speechSynthesis.addEventListener('voiceschanged', loadVoices); } catch(e){} }
 let speechToken = 0;
@@ -816,7 +830,7 @@ function speakOnce(text){
     const fin = () => { if (done) return; done = true; clearTimeout(t); res(); };
     try{
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US'; u.rate = S.rate; if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-US'; u.rate = S.rate; if (voice) u.voice = voice;
       u.onend = fin; u.onerror = fin;
       t = setTimeout(fin, (1600 + text.length * 220) / S.rate);
       speechSynthesis.speak(u);
@@ -2143,6 +2157,14 @@ function viewSettings(){
     <button class="chip" data-act="speed">🐢 ${speedLabel()}</button>
   </div>
   <div class="card mt">
+    <div class="field">🗣 읽어 주는 목소리 <span class="muted">— 누르면 들어 보고 그 목소리로 바뀌어요</span></div>
+    ${!hasTTS ? '<div class="muted">이 브라우저는 읽어 주기가 안 돼요</div>'
+      : !enVoices.length ? '<div class="muted">이 기기에서 영어 목소리 목록을 못 찾았어요. 앱을 완전히 닫았다 다시 열어 보세요.</div>'
+      : `<div class="vlist">${enVoices.map((v, i) => `<button class="vbtn ${voice === v ? 'on' : ''}" data-act="voice" data-i="${i}">${voice === v ? '✅ ' : ''}${esc(voiceLabel(v))}</button>`).join('')}</div>
+        <div class="muted mt">지금 목소리: <b>${voice ? esc(voiceLabel(voice)) : '기본'}</b> · 목소리는 이 기기에 깔린 것만 나와요. 태블릿 설정에서 음성 엔진을 바꿨다면 이 앱(브라우저)을 완전히 닫았다 다시 열어야 목록이 바뀌어요.</div>
+        ${LS.get('sw_voice', '') ? '<div class="row" style="justify-content:flex-start"><button class="btn small ghost" data-act="voice-auto">↩ 처음 목소리(자동)로</button></div>' : ''}`}
+  </div>
+  <div class="card mt">
     <div class="field">🎤 마이크 테스트 ${SR ? '' : '— 이 브라우저는 음성 인식이 안 돼요'}</div>
     <div class="row" style="justify-content:flex-start">
       <button class="btn small" data-act="mic-test" data-lang="en-US" ${SR ? '' : 'disabled'}>${S.listening === 'test' ? '⏹ 멈추기' : '영어로 말하기'}</button>
@@ -2355,6 +2377,12 @@ app.addEventListener('click', async e => {
       S.apiKey = ((document.getElementById('keyIn') || {}).value || '').trim(); LS.set('sw_key', S.apiKey);
       toast('저장했어요', 'good', 900); render(); break;
     }
+    case 'voice': {
+      const v = enVoices[i]; if (!v) break;
+      voice = v; LS.set('sw_voice', voiceId(v)); render();
+      stopSpeech(); speakOnce('Hello, Seohee! bathtub, flashlight, believe.'); break;
+    }
+    case 'voice-auto': LS.set('sw_voice', ''); loadVoices(); render(); stopSpeech(); speakOnce('Hello, Seohee!'); break;
     case 'mic-test': {
       if (S.listening){ stopListen(); break; }
       const lang = b.dataset.lang; S.listening = 'test'; S.micTest = '듣고 있어요…'; render();
