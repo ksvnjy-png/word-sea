@@ -1066,25 +1066,23 @@ async function runListen(opt){
     if (my !== listenRun) return;
     L.k = REPEAT;
     if (SR){
+      // 마이크 한 번에 두 번 읽기를 다 듣고, 채점 없이 바로 다음 단어로
       let empty = 0;
       while ((L.said || 0) < REPEAT){
         if (remind){ remind = false; render(); await speakOnce(W[L.i].word); if (my !== listenRun) return; await sleep(300); }
         S.listening = 'l'; render();
-        let alts;
-        try { alts = await listen('en-US'); }
+        let heard;
+        try { heard = await listenTwice('en-US', String(W[L.i].word).split(/\s+/).filter(Boolean).length || 1); }
         catch(e){ if (my !== listenRun) return; S.listening = null; L.playing = false; L.wait = true; render(); toast(micErr(e), 'bad', 2600); return; }
         if (my !== listenRun) return;
         S.listening = null;
-        if (!alts.length){
+        if (!heard){
           if (++empty >= 2){ L.playing = false; L.wait = true; render(); toast('따라 읽을 준비가 되면 ▶ 를 눌러요', '', 2600); return; }
-          render(); toast('잘 안 들렸어요 🙉 "지금 말해요!"가 보이면 따라 읽어요', '', 2000); continue;
+          render(); toast('잘 안 들렸어요 🙉 "지금 말해요!"가 보이면 두 번 읽어요', '', 2000); continue;
         }
-        // 채점 안 함: 무슨 말이든 들리면 1번 읽은 것으로
-        empty = 0; L.said = (L.said || 0) + 1; beep(true); render(); await sleep(500);
+        L.said = REPEAT; beep(true); render(); await sleep(350);
         if (my !== listenRun) return;
       }
-      await sleep(400);
-      if (my !== listenRun) return;
     }
     L.k = 0; L.said = 0; L.heard = null; L.i++;
   }
@@ -1410,7 +1408,7 @@ function viewListen(){
   const sayPhase = SR && started && !L.finished && L.k >= REPEAT;
   const li = S.listening === 'l', said = L.said || 0;
   const sayLine = !SR ? '' : `<div class="dots" aria-label="따라 읽기">🗣 ${range(REPEAT).map(k => `<span class="dot say ${k < said || L.finished ? 'on' : ''}"></span>`).join('')}</div>`;
-  const sayBox = !sayPhase ? '' : `<div class="label ${li && S.micLive ? 'live' : ''}" style="margin-top:8px">${li ? (S.micLive ? `지금 따라 읽어요! 🎙 (${said + 1}/${REPEAT})` : '마이크 준비 중…') : L.playing ? `따라 읽기 ${said}/${REPEAT}` : `▶ 를 누르고 따라 읽어요 (${said}/${REPEAT})`}</div>`;
+  const sayBox = !sayPhase ? '' : `<div class="label ${li && S.micLive ? 'live' : ''}" style="margin-top:8px">${li ? (S.micLive ? `지금 ${REPEAT}번 따라 읽어요! 🎙` : '마이크 준비 중…') : L.playing ? (said >= REPEAT ? '잘했어요! 👍' : '따라 읽기') : `▶ 를 누르고 ${REPEAT}번 따라 읽어요`}</div>`;
   const card = `<div class="card center">
     <div class="label">${L.finished ? '다 들었어요! 👏' : started ? `${L.i + 1} / ${N}` : `${N}개 단어 · ${SR ? `${REPEAT}번 듣고 ${REPEAT}번 따라 읽기` : `단어마다 ${REPEAT}번씩`}`}</div>
     <div class="bigword en">${started ? esc(cur.word) : '🎧'}</div>
@@ -1747,6 +1745,40 @@ async function runNews(){
 }
 
 /* 읽기 테스트: 긴 음성 인식(잠깐 쉬어도 이어서 듣기) */
+/* 듣기 탭 따라 읽기: 마이크를 한 번만 켜서 두 번 읽는 것을 한꺼번에 듣는다.
+   단어 수만큼 두 번 들리면 바로 끝, 말이 끊기면(인식기가 스스로 끝내면) 들린 만큼으로 끝, 최대 8초. */
+function listenTwice(lang, nWords){
+  return new Promise((res, rej) => {
+    if (!SR){ rej({code:'no_sr'}); return; }
+    stopSpeech();
+    let finals = [], interim = '', settled = false, hardT = null;
+    const live = v => { if (S.micLive !== v){ S.micLive = v; render(); } };
+    const text = () => (finals.join(' ') + ' ' + interim).replace(/\s+/g, ' ').trim();
+    const end = () => { clearTimeout(hardT); recog = null; S.micLive = false; S.stopLong = null; };
+    const fin = () => { if (settled) return; settled = true; const t = text(); end(); try { r.stop(); } catch(e){} res(t); };
+    const fail = v => { if (settled) return; settled = true; end(); rej(v); };
+    let r; try { r = new SR(); } catch(e){ fail({code:'start_failed'}); return; }
+    recog = r;
+    r.lang = lang; r.interimResults = true; r.continuous = true; r.maxAlternatives = 1;
+    r.onaudiostart = () => live(true);
+    r.onresult = e => {
+      let im = '';
+      for (let i = e.resultIndex || 0; i < e.results.length; i++){
+        const rr = e.results[i], t = rr[0] ? String(rr[0].transcript || '') : '';
+        if (rr.isFinal === false) im += ' ' + t; else if (t.trim()) finals.push(t.trim());
+      }
+      interim = im.trim();
+      const cnt = text().split(' ').filter(Boolean).length;
+      if (cnt >= nWords * 2) fin();
+    };
+    r.onerror = e => { if (['no-speech', 'aborted', 'no-match'].includes(e.error)) return; fail({code:e.error || 'error'}); };
+    r.onend = () => fin();
+    S.stopLong = () => fin();
+    S.micLive = false;
+    try { r.start(); } catch(e){ fail({code:'start_failed'}); return; }
+    hardT = setTimeout(fin, 8000);
+  });
+}
 function listenLong(lang){
   return new Promise((res, rej) => {
     if (!SR){ rej({code:'no_sr'}); return; }

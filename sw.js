@@ -6,7 +6,7 @@
  *
  * 재배포할 때 아래 VERSION을 바꾸면 예전 저장본이 통째로 정리돼요.
  */
-const VERSION = '2026-11-15-1';
+const VERSION = '2026-11-15-2';
 const CACHE = 'danbada-' + VERSION;
 const CORE = [
   './',
