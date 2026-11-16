@@ -1796,7 +1796,8 @@ function listenTwice(lang, nWords){
   });
 }
 /* 긴 읽기(뉴스 문단): 천천히 읽거나 잠깐 멈춰도 계속 듣는다.
-   끝나는 때: ⏹ 다 읽었어요 / 문단 끝 단어까지 읽음(opt.isDone) / 오래(opt.silenceMs, 기본 12초) 아무 말 없음 / 3분 */
+   끝나는 때: ⏹ 다 읽었어요 / (opt.isDone 주면) 다 읽었다고 판단 / opt.silenceMs(기본 12초, Infinity=끄기) 아무 말 없음 / 3분
+   뉴스 읽기 테스트는 silenceMs: Infinity → ⏹ 누를 때만 끝(3분 안전장치 제외) */
 function listenLong(lang, opt){
   opt = opt || {};
   const silenceMs = opt.silenceMs || 12000;
@@ -2005,22 +2006,9 @@ async function ntMic(){
   if (S.listening){ stopListen(); return; }
   const T = S.nt, p = T.queue[T.qi];
   stopSpeech(); S.gb = null; S.listening = 'nt'; render(); scrollNow();
-  // 문단 마지막(채점하는) 단어까지 읽었으면 끝. 너무 일찍 끝나지 않게 문단의 60% 넘게 들렸을 때만
-  const N = S.unit.N, ids = N.paras[p].w.filter(gi => !N.words[gi].free);
-  const lastW = ids.length ? N.words[ids[ids.length - 1]].t : null;
-  const isDone = txt => {
-    if (!lastW) return false;
-    const H = heardTokens(txt);
-    if (H.length < Math.ceil(ids.length * 0.6)) return false;
-    for (let L = 1; L <= 3; L++) for (let s = Math.max(0, H.length - 4); s + L <= H.length; s++){
-      const sl = H.slice(s, s + L);
-      if (L === 1 && nwMatch(lastW, sl[0])) return true;
-      if (/\d/.test(lastW) && numMatch(lastW, sl)) return true;
-    }
-    return false;
-  };
+  // ⏹ 다 읽었어요를 누를 때만 끝(2026-11-16 캡틴). 마이크가 스스로 꺼지면 다시 켜서 계속 들음. 안전장치: 3분
   let txt;
-  try { txt = await listenLong('en-US', {isDone}); }
+  try { txt = await listenLong('en-US', {silenceMs: Infinity}); }
   catch(e){ S.listening = null; render(); toast(micErr(e), 'bad', 2600); return; }
   S.listening = null;
   if (S.screen !== 'ntest' || S.nt !== T) return;
