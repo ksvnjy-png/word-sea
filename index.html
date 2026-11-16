@@ -1709,8 +1709,21 @@ function startNews(u, fresh){
     if (pr.nl && pr.nl.pos < N.words.length) S.nl.pos = pr.nl.pos || 0;
     if (pr.nt && pr.nt.phase !== 'end' && Array.isArray(pr.nt.res) && pr.nt.res.length === N.words.length){ S.nt = pr.nt; S.nt.phase = S.nt.phase === 'checked' ? 'checked' : 'read'; S.ntBack = pr.back || null; }
   }
+  syncFree(S.nt); syncFree(S.ntBack);
   goNews(S.nt ? 'ntest' : 'nlisten');
   if (S.nt) toast('하던 곳부터 이어서 해요 👍', 'good', 1600);
+}
+// 예전에 저장한 진행 상황에 지금 채점 규칙 맞추기 (2026-11-16: 숫자는 이제 채점 → 예전 '회색' 숫자를 다시 채점)
+function syncFree(T){
+  if (!T || !Array.isArray(T.res)) return;
+  const N = S.unit.N, keep = S.nt;
+  N.paras.forEach((P, p) => {
+    const stale = P.w.some(gi => (T.res[gi] === 'free') !== !!N.words[gi].free);
+    if (!stale) return;
+    if (T.heard && T.heard[p]){ S.nt = T; gradePara(p, T.heard[p]); S.nt = keep; }   // 그때 들린 말로 다시 채점
+    else P.w.forEach(gi => { T.res[gi] = N.words[gi].free ? 'free' : (T.res[gi] === 'free' ? null : T.res[gi]); });
+  });
+  if (T.phase === 'end'){ S.nt = T; T.score = totalScore(); S.nt = keep; }
 }
 function saveNews(){
   if (!S.unit || !S.unit.news) return;
